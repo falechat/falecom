@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Instructions for any AI agent (Claude Code, sub-agents, or pair-programming sessions) working in this repository. **Read this fully before taking any action.** If a package has its own `CLAUDE.md` or `AGENTS.md`, read that after this one — package-level files override repo-level ones when they conflict.
+Instructions for any AI agent (Claude Code, sub-agents, or pair-programming sessions) working in this repository. **Read this fully before taking any action.** Then read [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the system design, and [`GLOSSARY.md`](./GLOSSARY.md) for shared terminology. If a package has its own `CLAUDE.md` or `AGENTS.md`, read that after this one — package-level files override repo-level ones when they conflict.
 
 ---
 
@@ -247,4 +247,5 @@ Every one of those steps needs a test. No exceptions.
 - **Not a style guide.** Standardrb is the style guide.
 - **Not the architecture.** `ARCHITECTURE.md` is the architecture.
 - **Not a glossary.** `GLOSSARY.md` is the glossary.
+- **Not an installation guide.** Setup steps, generator commands, and tooling recipes belong in specs (`docs/specs/`) and are executed during the BUILD phase. This file defines *constraints* ("use Postgres, not Redis"), not *instructions* ("run `rails new ...`").
 - **Not complete.** When you discover a convention that's not documented, document it. When you find this file is wrong, fix it in the same PR as the change that revealed it.

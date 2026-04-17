@@ -1,6 +1,6 @@
-# FaleCom — Architecture Proposal
+# FaleCom — Architecture
 
-> Working document. Iterate freely.
+> Source of truth. Update when the architecture changes — not before, not after.
 
 ---
 
