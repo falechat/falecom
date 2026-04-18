@@ -85,8 +85,10 @@ Ingestion::ProcessMessage.call(channel, payload)
 
   4. Handle attachments:
      → if payload["message"]["attachments"] is non-empty:
-       - enqueue DownloadAttachmentJob for each attachment
-       - store attachment metadata on the message record
+       - for each attachment:
+         - create a record in `message.metadata["attachments_pending"]` to track status
+         - enqueue `DownloadAttachmentJob` with `message.id`, `channel.id`, and `attachment_data`
+       - the message is immediately broadcast/saved, attachments appear as "loading" in UI
 
   5. Broadcast:
      → Turbo::StreamsChannel.broadcast_* to conversation and workspace channels
@@ -198,16 +200,47 @@ end
 
 ### 2.6 `DownloadAttachmentJob`
 
+Responsible for fetching media from providers (which often requires authentication) and attaching it to the message via Active Storage.
+
 ```ruby
 class DownloadAttachmentJob < ApplicationJob
   queue_as :default
   retry_on StandardError, wait: :polynomially_longer, attempts: 5
 
-  def perform(message_id, attachment_data)
+  def perform(message_id, channel_id, attachment_data)
     message = Message.find(message_id)
-    # Download from attachment_data["external_url"]
-    # Attach via Active Storage
-    # message.files.attach(io: downloaded_file, filename: attachment_data["filename"], content_type: attachment_data["content_type"])
+    channel = Channel.find(channel_id)
+    
+    # 1. Resolve Download URL
+    # If attachment_data["url"] is present and public, use it.
+    # Otherwise, use provider-specific logic (e.g. WhatsApp media_id + credentials).
+    download_url = resolve_url(channel, attachment_data)
+    
+    # 2. Download file
+    # Use Faraday to download the file into a tempfile.
+    # If provider requires auth (like WhatsApp), add Bearer token from channel.credentials.
+    
+    # 3. Attach to Message
+    # message.files.attach(
+    #   io: tempfile, 
+    #   filename: attachment_data["filename"] || "file", 
+    #   content_type: attachment_data["content_type"]
+    # )
+    
+    # 4. Cleanup metadata
+    # Update message.metadata["attachments_pending"] to mark this one as complete.
+  end
+
+  private
+
+  def resolve_url(channel, data)
+    case channel.channel_type
+    when "whatsapp_cloud"
+      # Call Meta API with data["id"] to get the temporary download URL
+      # Requires channel.credentials["access_token"]
+    else
+      data["url"]
+    end
   end
 end
 ```
@@ -225,7 +258,7 @@ The first channel container. Uses the `falecom_channel` gem.
 | `lib/parser.rb` | Meta webhook → Common Ingestion Payload |
 | `lib/signature_verifier.rb` | Validates `X-Hub-Signature-256` |
 | `lib/sender.rb` | Common outbound → Meta Cloud API call |
-| `Gemfile` | `gem "falecom_channel", path: "../../falecom_channel"` |
+| `Gemfile` | `gem "falecom_channel", path: "../../falecom_channel"`, `gem "whatsapp_sdk"` |
 | `Dockerfile` | Container image |
 | `spec/` | RSpec tests |
 
@@ -234,6 +267,7 @@ The first channel container. Uses the `falecom_channel` gem.
 - Handles message types: text, image, audio, video, document, location, contacts, interactive (button/list replies).
 - Handles status updates (`entry[0].changes[0].value.statuses[0]`).
 - Maps to Common Ingestion Payload.
+- Extracts media metadata (captions, dimensions, MIME types) into the `attachments` array.
 - Puts Meta-specific fields in `metadata.whatsapp_context`.
 
 **`SignatureVerifier`:**
@@ -247,6 +281,9 @@ The first channel container. Uses the `falecom_channel` gem.
 - Uses channel credentials from the `/send` payload metadata or ENV.
 
 **Target size:** ~200–300 lines total across all files plus tests.
+
+> [!NOTE]
+> For the WhatsApp Cloud API integration, we use the `whatsapp_sdk` gem. It is the most mature community SDK as of 2025, handling the complexities of sending media, interactive messages, and template management while providing a clean Ruby interface.
 
 ### 2.8 Docker Compose Updates
 
@@ -334,7 +371,7 @@ This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus f
 
 To facilitate rapid development of the UI and Flow Engine without running the full container/SQS stack, developers can use these methods to inject data directly into the Rails API.
 
-### 6.1 Reference Common Payload (JSON)
+### 6.1 Reference Common Payload (Text Message)
 
 Save this as `test_message.json`:
 ```json
@@ -358,7 +395,50 @@ Save this as `test_message.json`:
 }
 ```
 
-### 6.2 Simple `curl` Mock
+### 6.2 Reference Common Payload (Image with Attachment Metadata)
+
+This example shows how an image with a caption and dimensions enters the system.
+
+```json
+{
+  "type": "inbound_message",
+  "channel": {
+    "type": "whatsapp_cloud",
+    "identifier": "+5511999999999"
+  },
+  "contact": {
+    "source_id": "5511988888888",
+    "name": "João Silva"
+  },
+  "message": {
+    "external_id": "WAMID.67890",
+    "content": "Look at this screenshot",
+    "content_type": "image",
+    "sent_at": "2026-04-17T12:05:00Z",
+    "attachments": [
+      {
+        "id": "meta_media_id_123",
+        "content_type": "image/jpeg",
+        "filename": "screenshot.jpg",
+        "metadata": {
+          "width": 1080,
+          "height": 1920,
+          "caption": "Look at this screenshot",
+          "mime_type": "image/jpeg"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "whatsapp_context": {
+      "forwarded": false,
+      "frequently_forwarded": false
+    }
+  }
+}
+```
+
+### 6.3 Simple `curl` Mock
 Since HMAC is disabled for internal ingestion, you can POST directly to the endpoint:
 ```bash
 curl -X POST http://localhost:3000/internal/ingest \

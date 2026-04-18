@@ -304,11 +304,22 @@ end
 | Outbound message (agent) | Right-aligned bubble, agent avatar, status checkmarks |
 | Outbound message (bot) | Right-aligned bubble, bot icon |
 | System message (transfer note) | Centered, muted text, no bubble |
-| Event: `conversations:created` | Centered pill: "Conversation started" |
-| Event: `conversations:assigned` | Centered pill: "Assigned to {agent}" |
-| Event: `conversations:transferred` | Centered pill: "Transferred from {from} to {to}" |
-| Event: `conversations:resolved` | Centered pill: "Resolved by {agent}" |
 | Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
+
+**Message Rendering (by `content_type`):**
+
+| `content_type` | UI Rendering |
+|---|---|
+| `text` | Standard text bubble with markdown support. |
+| `image` | Thumbnail preview with click-to-expand (modal/lightbox). Includes `caption` from metadata if present. |
+| `audio` | Inline HTML5 `<audio>` player with playback controls. |
+| `video` | Video thumbnail (if available) with "Play" icon overlay. Opens in external tab/browser to ensure compatibility, or uses native `<video>` if format is supported. |
+| `document` | File icon + filename + size. Download button. |
+| `location` | Static map preview (e.g. Google/OpenStreetMap) + "Open in Maps" link. |
+| `contact_card` | VCard summary (name, phone) + "Download Contact" button. |
+
+> [!TIP]
+> Use Rails' `audio_tag` and `video_tag` helpers. For images, ensure proper `object-fit: cover` on thumbnails to maintain layout consistency.
 
 | Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
 

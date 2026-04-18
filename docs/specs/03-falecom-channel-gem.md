@@ -58,7 +58,16 @@ attribute :message do
   attribute :direction, Types::String.constrained(included_in: %w[inbound outbound])
   attribute? :content, Types::String.optional
   attribute :content_type, Types::String.constrained(included_in: CONTENT_TYPES)
-  attribute? :attachments, Types::Array.default([].freeze)
+  attribute? :attachments, Types::Array.of(
+    Types::Hash.schema(
+      id: Types::String.optional,
+      url: Types::String.optional,
+      filename: Types::String.optional,
+      content_type: Types::String,
+      file_size: Types::Integer.optional,
+      metadata: Types::Hash.default({}.freeze)
+    )
+  ).default([].freeze)
   attribute :sent_at, Types::String  # ISO 8601
   attribute? :reply_to_external_id, Types::String.optional
 end
