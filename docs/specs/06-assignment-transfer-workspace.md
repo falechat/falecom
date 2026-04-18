@@ -20,6 +20,8 @@ Conversations arrive and agents can reply, but there is no system to route conve
 - There is no way to transfer a conversation from one agent or team to another.
 - The dashboard has no workspace concept — no "Mine", "Unassigned", or "My team" views.
 - The conversation detail view has no timeline showing system events alongside messages.
+- There is no central place to manage Channels, Teams, and Users (Admin CRUDs).
+- Contact details and history are not surfaced to the agent during a conversation.
 
 This spec implements the full assignment, transfer, and workspace experience described in `ARCHITECTURE.md § Workspace`, `§ Conversation Transfer`, and `§ Build Order → Phase 5`.
 
@@ -49,9 +51,15 @@ class ConversationPolicy
     can_view? && conversation.assignee_id == user.id
   end
 
+  # Can the agent self-assign an unassigned conversation?
+  def can_pickup?
+    can_view? && conversation.assignee_id.nil? && conversation.status == "queued"
+  end
+
   def can_transfer?
     return true if user.admin?
     return true if user.supervisor? && can_view?
+    return true if can_pickup?  # agents can pick up unassigned conversations
     conversation.assignee_id == user.id
   end
 
@@ -72,11 +80,11 @@ end
 
 **Authorization rules (from ARCHITECTURE.md):**
 
-| Actor role | Can view | Can reply | Can transfer | Can resolve |
-|---|---|---|---|---|
-| Agent | Conversations on channels their teams attend | Only if assigned to them | Only if assigned to them | Only if assigned to them |
-| Supervisor | Conversations on channels any of their teams attend | Only if assigned to them | Any conversation they can view | Any conversation they can view |
-| Admin | All conversations in their account | Only if assigned to them | Anything in their account | Anything in their account |
+| Actor role | Can view | Can reply | Can pickup (self-assign) | Can transfer | Can resolve |
+|---|---|---|---|---|---|
+| Agent | Conversations on channels their teams attend | Only if assigned to them | Unassigned queued conversations on their channels | If assigned OR if picking up unassigned | Only if assigned to them |
+| Supervisor | Conversations on channels any of their teams attend | Only if assigned to them | Same as agent | Any conversation they can view | Any conversation they can view |
+| Admin | All conversations | Only if assigned to them | Same as agent | Anything | Anything |
 
 ### 2.2 `Assignments::AutoAssign` Service
 
@@ -92,7 +100,7 @@ class Assignments::AutoAssign
     strategy = config["strategy"] || "round_robin"
     team_id = config["team_id"]
 
-    team = team_id ? Team.find(team_id) : channel.teams.first
+    team = team_id ? Team.find(team_id) : channel.teams.order(:id).first
     return unless team
 
     agent = pick_agent(team, strategy, config)
@@ -120,8 +128,8 @@ end
 
 | Strategy | Logic |
 |---|---|
-| `round_robin` | Pick the online agent in the team who was least recently assigned a conversation. Uses `conversations.where(assignee_id: agent_ids).group(:assignee_id).count` to find the agent with the fewest active conversations, breaking ties by `users.updated_at` (least recently active). |
-| `capacity` | Each agent has a configurable max capacity (`auto_assign_config["capacity"]`, default 10). Pick the first online agent below capacity, round-robin among ties. |
+| `round_robin` | Pick the online agent in the team who was least recently assigned a conversation. Uses `FOR UPDATE` lock on the selected user row. |
+| `capacity` | Each agent has a configurable max capacity (`auto_assign_config["capacity"]`, default 10). Pick the first online agent below capacity, round-robin among ties. Uses `FOR UPDATE` lock. |
 
 **Eligibility filter:**
 - Only agents with `availability: "online"` are eligible.
@@ -247,7 +255,7 @@ The dashboard conversation list implements filtered views. These are URL query p
 | `unassigned` | `assignee_id IS NULL AND status = 'queued'` | Conversations waiting for pickup |
 | `team` | `team_id IN (my_team_ids)` | All conversations in my teams |
 | `channel` | `channel_id = ?` | All conversations on a specific channel |
-| `all` (admin only) | `account_id = current_user.account_id` | Everything |
+| `all` (admin only) | `1=1` | Everything |
 
 **Shared behavior:**
 - All views are scoped by `ConversationPolicy#can_view?` — an agent never sees conversations on channels their teams don't attend.
@@ -302,7 +310,64 @@ end
 | Event: `conversations:resolved` | Centered pill: "Resolved by {agent}" |
 | Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
 
-### 2.11 Real-Time Scoping (Solid Cable)
+| Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
+
+| Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
+
+### 2.11 The Three-Pane Layout (Workspace)
+
+The main dashboard (`/dashboard`) uses a fixed-height, full-screen three-pane layout to minimize scrolling and keep context visible.
+
+1.  **Left Pane (25% - Conversation List)**:
+    - **Header**: Search bar + View Selector (Mine, Unassigned, All).
+    - **List**: High-density cards. Unread messages show a blue dot. Active conversation is highlighted.
+2.  **Center Pane (50% - Active Conversation)**:
+    - **Header**: Contact Name, Channel icon, and Action Bar (Resolve, Transfer).
+    - **Timeline**: Scrollable area with messages and system events. Newest at the bottom.
+    - **Footer**: Reply area with auto-expanding textarea and "Send" button.
+3.  **Right Pane (25% - Contact Context)**:
+    - **Contact Profile**: Avatar, Name, and core fields (Phone, Email).
+    - **Custom Attributes**: A list of key-value pairs (e.g., "Plan: Enterprise").
+    - **Conversation History**: Chronological list of past `#display_id` for this contact.
+
+### 2.12 Admin UI: Channels, Teams & Users
+
+Admin screens (`/admin/*`) use standard data tables with search, sort, and pagination.
+
+**Channels Table:**
+| Field | Type | Description |
+|---|---|---|
+| Name | String | Friendly name (e.g., "WhatsApp Support") |
+| Type | Badge | Icon + Provider (e.g., "WhatsApp Cloud") |
+| Identifier | Code | The provider ID (Phone number or ID) |
+| Active | Toggle | Quick enable/disable |
+| Auto-Assign | Badge | Shows strategy (e.g., "Round Robin") |
+
+**Teams Table:**
+| Field | Type | Description |
+|---|---|---|
+| Name | String | Team name (e.g., "Sales") |
+| Members | Avatar Stack | List of users in the team |
+| Channels | Badge List | Channels attended by this team |
+
+**Users Table:**
+| Field | Type | Description |
+|---|---|---|
+| Name | String | Full name |
+| Email | String | Login email |
+| Role | Badge | Admin, Supervisor, or Agent |
+| Teams | Badge List | Teams the user belongs to |
+| Availability | Status Indicator | Online (Green), Busy (Yellow), Offline (Gray) |
+
+### 2.13 Contact Details & Custom Attributes
+
+Contacts are managed via the sidebar but also have a dedicated management view.
+
+- **Attributes**: Users can add ad-hoc attributes to contacts. These are stored in `additional_attributes` jsonb.
+- **Notes**: Internal-only messages added to a conversation that don't go to the customer (sender: "System").
+- **Integration Links**: If an attribute contains a URL (e.g., "CRM Link"), it renders as a clickable external link in the sidebar.
+
+### 2.14 Real-Time Scoping (Solid Cable)
 
 Turbo Streams broadcast conversation events per Channel. The agent's browser subscribes to the Channels their teams attend.
 
@@ -373,7 +438,6 @@ end
 - **Approval workflow for transfers** — v1 is "if you have permission, it's done."
 - **SLA tracking / response time metrics** — roadmap item.
 - **Canned responses / knowledge base** — roadmap item.
-- **Contact detail sidebar** — separate UI spec.
 - **Conversation search / filtering beyond workspace views** — follow-up.
 - **Notifications (push, email, sound)** — follow-up spec.
 
