@@ -1,0 +1,17 @@
+# THIS FILE IS REFERENCE ONLY.
+#
+# FaleCom's production deploy runs on AWS (API Gateway + SQS + per-channel
+# containers + the Rails app on managed compute). See infra/terraform/ for the
+# real production manifest. This compose file exists so developers can skim a
+# single file to understand the production topology — do NOT use it to deploy.
+
+name: falecom-prod
+
+services:
+  # Intentionally empty until the production compose topology is specced.
+  # This file is kept so `docker compose -f infra/docker-compose.prod.yml config`
+  # parses cleanly and CI can at least lint the YAML shape.
+  _placeholder:
+    image: busybox:latest
+    command: ["true"]
+    profiles: ["disabled"]

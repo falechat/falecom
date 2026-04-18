@@ -1,0 +1,23 @@
+{
+  "name": "falecom",
+  "dockerComposeFile": "../infra/docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/falecom",
+  "features": {
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "hashicorp.terraform"
+      ]
+    }
+  },
+  "postCreateCommand": "bin/setup",
+  "remoteUser": "root"
+}

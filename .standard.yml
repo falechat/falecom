@@ -1,0 +1,4 @@
+ruby_version: 4.0.2
+format: progress
+# Rails 8.1 scaffold ships with style that standardrb accepts after
+# `standardrb --fix`. We lint the whole monorepo from root.
