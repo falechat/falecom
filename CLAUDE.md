@@ -117,7 +117,7 @@ If CI fails on main, the person who merged is responsible for rolling back or fi
 
 ### Language and tooling
 
-- **Ruby** — version pinned in `.ruby-version`. Use `asdf` or `mise`, not `rbenv`, to match the team.
+- **Ruby** — version pinned in `.ruby-version` (Ruby 4.0.2). Use `asdf` or `mise`, not `rbenv`, to match the team.
 - **Dev environment** — the supported path is the devcontainer at `.devcontainer/devcontainer.json`. Opening the repo in VS Code / Cursor with the Dev Containers extension boots the full stack (Postgres, app, channel containers, dev-webhook) and attaches you into a workspace with Ruby, standardrb, node, aws-cli, and Terraform pre-installed. `postCreateCommand` runs `bin/setup` which installs deps and prepares the database. Contributors working outside a devcontainer can use `bin/setup` + `docker compose up` from the host, given the right Ruby installed via `mise`/`asdf`.
 - **Rails 8.1** — the app package (`packages/app`).
 - **Roda** — the channel container apps and the `dev-webhook` helper.

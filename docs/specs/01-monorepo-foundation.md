@@ -27,7 +27,7 @@ This spec is split into two sub-phases that can be executed sequentially in the 
 
 ### Phase 1A — Backend Scaffold
 
-- [ ] **Ruby version pinning** — `.ruby-version` file at repo root (Ruby 3.4.1).
+- [ ] **Ruby version pinning** — `.ruby-version` file at repo root (Ruby 4.0.2).
 - [ ] **Root-level Gemfile** — for shared dev tooling only (`standardrb`). Not for application gems.
 - [ ] **`.devcontainer/devcontainer.json`** — workspace definition referencing `infra/docker-compose.yml`, installing features (Node LTS, aws-cli, GitHub CLI, Terraform), configuring VS Code extensions (Ruby LSP, Tailwind, Prettier, Terraform), and running `bin/setup` via `postCreateCommand`. Matches the structure documented in `ARCHITECTURE.md § Local development`.
 - [ ] **`.devcontainer/workspace.Dockerfile`** (or equivalent) — image with Ruby + standardrb + postgresql-client.
@@ -133,7 +133,7 @@ No contradictions with the architecture. This spec **implements** the foundation
 
 ## 7. Decided Architecture (Previously Open Questions)
 
-1. **Ruby version** — Decided: Pin to **3.4.1**.
+1. **Ruby version** — Decided: Pin to **4.0.2**.
 2. **Tailwind CSS** — Decided: Use **4.0.2** (latest stable).
 3. **JR Components version** — Decided: Add a `packages/app/app/components/ui/VERSION` file noting the source URL and date of the copy-pasted components for traceability.
 4. **Procfile.dev** — Decided: Use **`foreman`** as the default process manager via `bin/dev`. The `Procfile.dev` will be standard-compliant for developers preferring `overmind`.
