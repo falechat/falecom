@@ -25,5 +25,7 @@ module App
     # config.eager_load_paths << Rails.root.join("extras")
 
     config.active_job.queue_adapter = :solid_queue
+
+    config.action_view.default_form_builder = "JrFormBuilder"
   end
 end

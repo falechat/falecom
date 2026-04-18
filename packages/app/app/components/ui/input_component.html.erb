@@ -1,0 +1,10 @@
+<input
+  type="<%= @type %>"
+  name="<%= @name %>"
+  <% if @value %>value="<%= @value %>"<% end %>
+  <% if @placeholder %>placeholder="<%= @placeholder %>"<% end %>
+  <% if @required %>required<% end %>
+  <% if @autofocus %>autofocus<% end %>
+  <% if @autocomplete %>autocomplete="<%= @autocomplete %>"<% end %>
+  class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+>

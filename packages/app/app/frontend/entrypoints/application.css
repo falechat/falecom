@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Dark mode — Tailwind v4 uses class strategy via the :root variant. */
+@variant dark (.dark &);
+
+/* JR design tokens live here once components are copied. For now, only the
+   Tailwind base layers are active; component-level styles are scoped via
+   ViewComponent templates. */

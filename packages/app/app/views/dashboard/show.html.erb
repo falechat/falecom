@@ -1,0 +1,17 @@
+<% content_for :title, "Dashboard — FaleCom" %>
+
+<section class="mx-auto max-w-3xl">
+  <h1 class="text-2xl font-semibold tracking-tight">Welcome to FaleCom</h1>
+  <p class="mt-2 text-slate-600 dark:text-slate-400">
+    Signed in as <strong><%= Current.user.email_address %></strong>.
+    The dashboard shell is live — real widgets land in subsequent specs.
+  </p>
+
+  <%= render Ui::ButtonComponent.new(
+    label: "Sign out",
+    href: session_path,
+    method: :delete,
+    variant: "secondary",
+    class: "mt-6"
+  ) %>
+</section>

@@ -47,10 +47,17 @@ jobs:
         working-directory: packages/app
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: packages/app/package-lock.json
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 4.0.2
           bundler-cache: true
           working-directory: packages/app
+      - run: npm ci
+      - run: bundle exec vite build
       - run: bin/rails db:prepare
       - run: bundle exec rspec

@@ -1,0 +1,5 @@
+<% if @href %>
+  <%= link_to @label, @href, data: { turbo_method: @method }, class: button_classes %>
+<% else %>
+  <button type="<%= @type %>" class="<%= button_classes %>"><%= @label %></button>
+<% end %>

@@ -1,0 +1,4 @@
+<label <% if @for_id %>for="<%= @for_id %>"<% end %> class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+  <%= @text %>
+  <% if @required %><span class="text-red-500">*</span><% end %>
+</label>
