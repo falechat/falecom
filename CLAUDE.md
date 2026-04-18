@@ -56,12 +56,12 @@ You cannot move to BUILD until the plan is reviewed. For small changes, review c
 
 Execute the plan using strict TDD:
 
-1. Write the test. Run it. Watch it fail for the right reason. If it fails for the wrong reason, the test is wrong — fix the test before writing the code.
-2. Write the minimum code to make the test pass. Resist the urge to add "while I'm in here" changes.
-3. Run the test. Green.
-4. Run the related test file. Green.
-5. Commit. Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`). Imperative mood. Describe the *what* and the *why*, not the *how*.
-6. Repeat for the next test.
+1. **TDD First**: Write the test. Run it. Report the failure reason.
+2. **Minimal Code**: Write the minimum code to pass.
+3. **Verify**: Run the test. Run the related suite.
+4. **Manual Proof**: Before finishing, perform the manual steps defined in the spec and report the UI behavior. Use `rake ingest:mock` to verify real-time updates.
+5. **E2E Check**: If touching the pipeline, verify that a message goes from the channel container to the Rails dashboard.
+6. **Commit**: Use Conventional Commits.
 
 **Never skip work because files were already broken.** If you find broken code on the way to your goal, fix it. If the fix is large, stop, update the plan, surface the detour to the human, and proceed.
 
@@ -73,12 +73,13 @@ Execute the plan using strict TDD:
 
 ### VERIFY
 
-Run the full test suite across the entire platform. All unit, integration, and end-to-end tests must pass. This is a hard contract, not a suggestion.
+Run the full test suite across the entire platform. All unit, integration, and end-to-end tests must pass.
 
-- `bundle exec rspec` in each package that has tests
-- `bin/rails test:system` or `bin/playwright test` for UI end-to-end
-- `bin/standardrb --fix` for linting
-- Migration round-trip: `bin/rails db:migrate && bin/rails db:rollback && bin/rails db:migrate` — rollback must work
+- `bundle exec rspec` (unit/integration)
+- `bin/rails test:system` (E2E UI tests)
+- **Manual Smoke Test**: Run the application, perform the primary action in the browser, and verify Turbo Stream broadcasts and DB state.
+- `bin/standardrb --fix` (linting)
+- Migration round-trip check.
 
 If anything fails, go back to BUILD. Do not explain away failures. Do not mark tests as pending. Fix them or revert the change.
 
