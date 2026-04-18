@@ -28,7 +28,7 @@ The `falecom_channel` gem is the single shared surface between channel container
 ### 2.1 Gem scaffold
 
 - [ ] `packages/falecom_channel/` — standard Ruby gem layout.
-- [ ] `falecom_channel.gemspec` with dependencies: `dry-struct`, `dry-validation`, `faraday`, `roda`, `aws-sdk-sqs`, `pg` (for local adapter).
+- [ ] `falecom_channel.gemspec` with dependencies: `dry-struct`, `dry-validation`, `faraday`, `roda`, `aws-sdk-sqs`.
 - [ ] `Gemfile` referencing the gemspec.
 - [ ] `lib/falecom_channel.rb` — top-level require.
 - [ ] `spec/` directory with RSpec configured.
@@ -114,40 +114,19 @@ The `validate!` method determines the schema by the `type` field and applies the
 
 ### 2.3 `FaleComChannel::QueueAdapter`
 
-Abstract interface with two implementations:
+Wrapper around `aws-sdk-sqs` for pulling messages from AWS SQS. (We use SQS exclusively, even in development, to ensure environment parity and eliminate local polling complexities).
 
-**`FaleComChannel::QueueAdapter::SqsAdapter`:**
+**`FaleComChannel::QueueAdapter`:**
 - Wraps `aws-sdk-sqs`.
 - `consume(&handler)` — long-polls SQS, yields message body + headers.
 - `ack(receipt_handle)` — deletes message from queue.
 - `nack(receipt_handle)` — changes visibility timeout to 0 (immediate retry).
 - Configurable: `queue_url`, `wait_time_seconds`, `visibility_timeout`.
 
-**`FaleComChannel::QueueAdapter::LocalAdapter`:**
-- Uses a Postgres table (`inbound_queue`) for dev.
-- `enqueue(queue_name, payload)` — inserts a row.
-- `consume(&handler)` — polls the table with `SELECT ... FOR UPDATE SKIP LOCKED`, yields rows.
-- `ack(id)` — deletes the row.
-- `nack(id)` — sets `retry_at` to now (immediate retry).
-- The table schema:
-
-```sql
-CREATE TABLE inbound_queue (
-  id bigserial PRIMARY KEY,
-  queue_name text NOT NULL,
-  payload jsonb NOT NULL,
-  headers jsonb NOT NULL DEFAULT '{}',
-  retry_at timestamp DEFAULT CURRENT_TIMESTAMP,
-  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_inbound_queue_consume ON inbound_queue (queue_name, retry_at);
-```
-
 **Factory:**
 
 ```ruby
 FaleComChannel::QueueAdapter.build(
-  backend: ENV.fetch("QUEUE_BACKEND", "local"),  # "sqs" | "local"
   queue_name: ENV.fetch("SQS_QUEUE_NAME")
 )
 ```
@@ -285,7 +264,6 @@ end
 - **Actual channel containers** — this spec builds only the gem, not the WhatsApp/Z-API/etc. apps that use it.
 - **Rails `/internal/ingest` endpoint** — that's the consumer of this gem's contract, built in Spec 4.
 - **SQS infrastructure** (queues, DLQs, IAM) — Terraform config is a separate concern.
-- **The `inbound_queue` Postgres table in the Rails app** — it's created by the gem's local adapter but only used by channel containers and dev-webhook, not by the Rails app itself. The migration for this table lives in the gem's setup or in the dev-webhook setup, not in Rails migrations.
 
 ---
 
@@ -296,7 +274,6 @@ After this spec is executed:
 - The `falecom_channel` gem exists at `packages/falecom_channel/` and can be referenced via `gem "falecom_channel", path: "../../falecom_channel"` from any container's Gemfile.
 - The Common Ingestion Payload has a machine-enforceable schema — not just a JSON example in ARCHITECTURE.md.
 - Channel containers can be built by implementing two methods: `handle(raw_body, headers)` for inbound and `handle_send(payload)` for outbound. Everything else is handled by the gem.
-- The local queue adapter enables full-pipeline development without AWS.
 
 No contradictions with the architecture. This spec implements `ARCHITECTURE.md § Shared Infrastructure — falecom_channel gem` and `ARCHITECTURE.md § Queue Adapter`.
 
@@ -307,8 +284,8 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 1. `cd packages/falecom_channel && bundle exec rspec` — all specs pass.
 2. `FaleComChannel::Payload.validate!` accepts a valid inbound message hash matching the ARCHITECTURE.md example.
 3. `FaleComChannel::Payload.validate!` rejects a hash missing `channel.type` with a clear error message.
-4. `FaleComChannel::QueueAdapter.build(backend: "local", queue_name: "test")` returns a `LocalAdapter`.
-5. `LocalAdapter#enqueue` + `LocalAdapter#consume` round-trips a message (integration test with Postgres).
+4. `FaleComChannel::QueueAdapter.build(queue_name: "test")` returns an SQS adapter initialized correctly.
+5. `QueueAdapter#consume` yields the correct payload and `ack`/`nack` handle messages correctly (can mock `aws-sdk-sqs` for tests).
 6. `FaleComChannel::IngestClient` signs requests with correct HMAC headers (unit test with Faraday test adapter).
 7. `FaleComChannel::SendServer` rejects requests with invalid HMAC (returns 401).
 8. `FaleComChannel::Hmac.verify!` rejects timestamps older than 5 minutes.
@@ -327,4 +304,4 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 ## 7. Open questions
 
 1. **dry-struct vs plain Ruby structs** — dry-struct provides type coercion and nested schemas but adds a dependency. Should we consider plain `Struct` + manual validation instead? Recommendation: use dry-validation for the contract (it's the right tool for schema enforcement), but potentially use a simpler struct for the data object itself if dry-struct feels heavy.
-2. **`inbound_queue` table location** — should this table be created via a Rake task in the gem, a migration in dev-webhook, or a standalone SQL file? The table is only needed in dev (production uses SQS). Recommendation: the `LocalAdapter` creates the table if it doesn't exist on first use (`CREATE TABLE IF NOT EXISTS`), keeping it self-contained.
+2. **SQS in Development** — requiring AWS SQS for local development means developers need an AWS account or LocalStack. Recommendation: Use a lightweight LocalStack docker container in `docker-compose.yml` to provide SQS locally without relying on a custom Postgres queue implementation.

@@ -16,9 +16,8 @@ The domain models exist (Spec 2) and the shared gem defines the contract (Spec 3
 
 1. A Rails endpoint (`/internal/ingest`) that accepts the Common Ingestion Payload, validates it, and processes it into domain records.
 2. A reference channel container (WhatsApp Cloud) that translates Meta's webhook format into the common payload and POSTs it to Rails.
-3. A local dev-webhook mock that simulates AWS API Gateway so the full pipeline is testable without AWS.
 
-After this spec, a webhook from WhatsApp → local dev-webhook → queue → WhatsApp container → Rails → database → Turbo Stream broadcast is a working path.
+After this spec, a message pulled from an SQS queue → WhatsApp container → Rails → database → Turbo Stream broadcast is a working path.
 
 ---
 
@@ -32,8 +31,8 @@ POST /internal/ingest
 
 **Authentication:**
 - HMAC verification via `FaleComChannel::Hmac.verify!` (or a Ruby-side reimplementation).
-- Checks `X-FaleCom-Signature` and `X-FaleCom-Timestamp` headers.
-- Rejects with `401 Unauthorized` if signature is invalid or timestamp is stale (>5 min).
+- Checks `X-FaleCom-Signature` header.
+- Rejects with `401 Unauthorized` if signature is invalid. Note: We don't strictly validate timestamps/replay since we are pulling securely from SQS queues.
 
 **Channel registration check:**
 ```ruby
@@ -232,49 +231,9 @@ The first channel container. Uses the `falecom_channel` gem.
 
 **Target size:** ~200–300 lines total across all files plus tests.
 
-### 2.8 `infra/dev-webhook/` — Local API Gateway Mock
+### 2.8 Docker Compose Updates
 
-Tiny Roda app that mimics AWS API Gateway for local development.
-
-```ruby
-class DevWebhook < Roda
-  plugin :json
-  plugin :json_parser
-
-  route do |r|
-    r.on "webhooks" do
-      r.post "whatsapp-cloud" do
-        enqueue("sqs-whatsapp-cloud", r.body.read, request_headers(r))
-        { status: "queued" }
-      end
-
-      r.post "zapi" do
-        enqueue("sqs-zapi", r.body.read, request_headers(r))
-        { status: "queued" }
-      end
-
-      # ... one route per channel type
-    end
-  end
-
-  def enqueue(queue_name, body, headers)
-    adapter = FaleComChannel::QueueAdapter.build(
-      backend: "local",
-      queue_name: queue_name
-    )
-    adapter.enqueue(body, headers)
-  end
-end
-```
-
-- Runs on port 4000.
-- Returns 200 immediately (mimics API Gateway behavior).
-- Enqueues to the local Postgres-backed queue.
-- Providers are configured to send webhooks to `http://localhost:4000/webhooks/{channel-type}` in dev.
-
-### 2.9 Docker Compose Updates
-
-Uncomment the `dev-webhook`, `channel-whatsapp-cloud`, and `app` services in `infra/docker-compose.yml`. Wire environment variables.
+Uncomment the `channel-whatsapp-cloud` and `app` services in `infra/docker-compose.yml`. Wire environment variables, ensuring it points to an SQS queue (via real AWS or LocalStack).
 
 ### 2.10 Tests
 
@@ -282,7 +241,6 @@ Uncomment the `dev-webhook`, `channel-whatsapp-cloud`, and `app` services in `in
   - Valid inbound message → 200, message created, conversation created, event emitted.
   - Valid status update → 200, message status updated.
   - Invalid HMAC → 401.
-  - Stale timestamp → 401.
   - Unknown channel → 422.
   - Duplicate `external_id` → 200 (idempotent, no duplicate message).
 
@@ -308,7 +266,7 @@ Uncomment the `dev-webhook`, `channel-whatsapp-cloud`, and `app` services in `in
   - Invalid signature → raises.
 
 - [ ] **End-to-end integration test:**
-  - POST a real Meta-format webhook to `dev-webhook`.
+  - Mock SQS payload with a real Meta-format webhook.
   - `whatsapp-cloud` container pulls from the queue, parses, POSTs to `/internal/ingest`.
   - Verify: Message record exists in DB, Conversation created, Contact created, Events emitted.
 
@@ -329,13 +287,12 @@ Uncomment the `dev-webhook`, `channel-whatsapp-cloud`, and `app` services in `in
 
 After this spec:
 
-- Messages can enter the system end-to-end: WhatsApp webhook → dev-webhook → queue → container → Rails → database.
+- Messages can enter the system end-to-end: SQS → container → Rails → database.
 - The `/internal/ingest` endpoint is live and HMAC-protected.
 - Contact resolution, conversation management, and message creation are working services.
 - Idempotency ensures SQS redelivery never creates duplicates.
 - The WhatsApp Cloud container is the reference implementation for all future channel containers.
 - Turbo Stream broadcasts fire on message creation — the dashboard (when UI is built) will update in real-time.
-- The full dev pipeline is exercisable locally without AWS.
 
 This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus flow advance and auto-assign) and `ARCHITECTURE.md § Build Order → Phase 3`.
 
@@ -351,7 +308,7 @@ This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus f
 6. A message on a channel with no open conversation creates a new Conversation.
 7. `Events` table has entries for `contacts:created`, `conversations:created`, and `messages:inbound`.
 8. WhatsApp Cloud parser correctly transforms a real Meta text message webhook into Common Ingestion Payload.
-9. End-to-end test: POST to `dev-webhook` → container processes → message appears in Rails DB.
+9. End-to-end test: SQS pull → container processes → message appears in Rails DB.
 10. `bundle exec rspec` in `packages/app`, `packages/channels/whatsapp-cloud`, and `packages/falecom_channel` all pass.
 11. `bundle exec standardrb` passes across all packages.
 
@@ -361,7 +318,6 @@ This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus f
 
 - **Meta webhook format changes** — Meta occasionally modifies their webhook payload structure. Mitigation: the parser is isolated in one file; tests pin the expected format; the `raw` field preserves the original for debugging.
 - **Transaction scope of ProcessMessage** — wrapping contact resolve + conversation resolve + message create in one transaction is clean but could be slow under load. Mitigation: the transaction only hits Postgres (no external calls inside it); attachments are downloaded asynchronously.
-- **Dev-webhook ↔ container timing** — in dev, the webhook enqueues and the container polls. If the container isn't running, messages pile up in the local queue. This is fine — they'll be processed when the container starts. But it can confuse developers. Mitigation: document in README that `docker compose up channel-whatsapp-cloud dev-webhook` must be running for the pipeline to work.
 
 ---
 

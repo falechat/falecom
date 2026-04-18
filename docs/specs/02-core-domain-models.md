@@ -32,7 +32,7 @@ Generated via `bin/rails generate migration` and applied in the order documented
 
 4. **`CreateTeamMembers`** — `team_id` (references, NOT NULL, FK), `user_id` (references, NOT NULL, FK), timestamps. Unique index on `(team_id, user_id)`.
 
-5. **`CreateChannels`** — `account_id` (references, NOT NULL, FK), `channel_type` (string, NOT NULL, check constraint: `whatsapp_cloud|zapi|evolution|instagram|telegram`), `identifier` (string, NOT NULL), `name` (string, NOT NULL), `active` (boolean, NOT NULL, default true), `config` (jsonb, NOT NULL, default `{}`), `credentials` (jsonb, NOT NULL, default `{}`), `auto_assign` (boolean, NOT NULL, default false), `auto_assign_config` (jsonb, NOT NULL, default `{}`), `greeting_enabled` (boolean, NOT NULL, default false), `greeting_message` (text), `lock_to_single_conversation` (boolean, NOT NULL, default false), timestamps. Unique index on `(channel_type, identifier)`. Index on `(account_id, active)`. **`active_flow_id` is NOT added yet** — deferred to Flow Engine spec to avoid circular FK.
+5. **`CreateChannels`** — `account_id` (references, NOT NULL, FK), `channel_type` (string, NOT NULL, check constraint: `whatsapp_cloud|zapi|evolution|instagram|telegram`), `identifier` (string, NOT NULL), `name` (string, NOT NULL), `active` (boolean, NOT NULL, default true), `config` (jsonb, NOT NULL, default `{}`), `credentials` (jsonb, NOT NULL, default `{}`), `auto_assign` (boolean, NOT NULL, default false), `auto_assign_config` (jsonb, NOT NULL, default `{}`), `greeting_enabled` (boolean, NOT NULL, default false), `greeting_message` (text), `lock_to_single_conversation` (boolean, NOT NULL, default false), `active_flow_id` (bigint, nullable), timestamps. Unique index on `(channel_type, identifier)`. Index on `(account_id, active)`. **Note: The foreign key constraint for `active_flow_id` is deferred to the Flow Engine spec to avoid circular FK dependencies.**
 
 6. **`CreateChannelTeams`** — `channel_id` (references, NOT NULL, FK), `team_id` (references, NOT NULL, FK), timestamps. Unique index on `(channel_id, team_id)`.
 
@@ -40,7 +40,7 @@ Generated via `bin/rails generate migration` and applied in the order documented
 
 8. **`CreateContactChannels`** — `contact_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `source_id` (string, NOT NULL), timestamps. Unique index on `(channel_id, source_id)`.
 
-9. **`CreateConversations`** — `account_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `contact_id` (references, NOT NULL, FK), `contact_channel_id` (references, NOT NULL, FK), `status` (string, NOT NULL, default `bot`, check constraint: `bot|queued|assigned|resolved`), `assignee_id` (references, nullable, FK to users), `team_id` (references, nullable, FK), `display_id` (integer, NOT NULL), `last_activity_at` (datetime), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps. Indexes: `(account_id, status, last_activity_at DESC)`, `(channel_id, status)`, `(assignee_id, status)`, `(team_id, status)`, unique `(account_id, display_id)`.
+9. **`CreateConversations`** — `account_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `contact_id` (references, NOT NULL, FK), `contact_channel_id` (references, NOT NULL, FK), `status` (string, NOT NULL, default `bot`, check constraint: `bot|queued|assigned|resolved`), `assignee_id` (references, nullable, FK to users), `team_id` (references, nullable, FK), `display_id` (integer, NOT NULL), `last_activity_at` (datetime), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps. Indexes: `(account_id, status, last_activity_at DESC)`, `(channel_id, status)`, `(assignee_id, status)`, `(team_id, status)`, unique `(account_id, display_id)`, partial unique `(contact_channel_id) WHERE status != 'resolved'` (prevents concurrent creation of multiple open conversations for the same contact on a channel).
 
 10. **`CreateMessages`** — `account_id` (references, NOT NULL, FK), `conversation_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `direction` (string, NOT NULL, check constraint: `inbound|outbound`), `content` (text), `content_type` (string, NOT NULL, default `text`, check constraint: `text|image|audio|video|document|location|contact_card|input_select|button_reply|template`), `status` (string, NOT NULL, default `received`, check constraint: `received|pending|sent|delivered|read|failed`), `external_id` (string), `sender_type` (string), `sender_id` (bigint), `reply_to_external_id` (string), `error` (text), `metadata` (jsonb, NOT NULL, default `{}`), `raw` (jsonb), `sent_at` (datetime), timestamps. Indexes: `(conversation_id, created_at)`, partial unique `(channel_id, external_id) WHERE external_id IS NOT NULL`, `(sender_type, sender_id)`.
 
@@ -50,7 +50,7 @@ Generated via `bin/rails generate migration` and applied in the order documented
 
 13. **Active Storage install** — `bin/rails active_storage:install`.
 
-> **Note:** Flows, FlowNodes, and ConversationFlows migrations are **deferred to the Flow Engine spec (Phase 6)**. The `channels.active_flow_id` column is also deferred. This keeps this spec focused on the core domain that all other specs depend on.
+> **Note:** Flows, FlowNodes, and ConversationFlows migrations are **deferred to the Flow Engine spec (Phase 6)**. The foreign key for `channels.active_flow_id` is also deferred. This keeps this spec focused on the core domain that all other specs depend on.
 
 ### 2.2 ActiveRecord Models
 
@@ -75,7 +75,7 @@ Each model includes:
 | `Contact` | `belongs_to :account`, `has_many :contact_channels`, `has_many :channels, through: :contact_channels`, `has_many :conversations` | — |
 | `ContactChannel` | `belongs_to :contact`, `belongs_to :channel` | `source_id` presence; unique `(channel_id, source_id)` scoped |
 | `Conversation` | `belongs_to :account`, `belongs_to :channel`, `belongs_to :contact`, `belongs_to :contact_channel`, `belongs_to :assignee, class_name: "User", optional: true`, `belongs_to :team, optional: true`, `has_many :messages` | `status` enum; `display_id` presence + uniqueness scoped to account |
-| `Message` | `belongs_to :account`, `belongs_to :conversation`, `belongs_to :channel`, `belongs_to :sender, polymorphic: true, optional: true` | `direction`, `content_type`, `status` enums |
+| `Message` | `belongs_to :account`, `belongs_to :conversation`, `belongs_to :channel`, `belongs_to :sender, polymorphic: true, optional: true`, `has_many_attached :attachments` | `direction`, `content_type`, `status` enums |
 | `AutomationRule` | `belongs_to :account` | `event_name` presence |
 | `Event` | `belongs_to :account, optional: true`, `belongs_to :subject, polymorphic: true`, `belongs_to :actor, polymorphic: true, optional: true` | `name`, `subject_type`, `subject_id` presence |
 

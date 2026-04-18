@@ -47,8 +47,8 @@ These tables are created now, deferred from Spec 2 to keep that spec focused on 
 **Migration 3: `AddRootNodeIdToFlows`**
 - `ALTER TABLE flows ADD CONSTRAINT fk_flows_root_node_id FOREIGN KEY (root_node_id) REFERENCES flow_nodes(id)`
 
-**Migration 4: `AddActiveFlowIdToChannels`**
-- `ALTER TABLE channels ADD COLUMN active_flow_id bigint REFERENCES flows(id)`
+**Migration 4: `AddActiveFlowIdForeignKeyToChannels`**
+- `ALTER TABLE channels ADD CONSTRAINT fk_channels_active_flow_id FOREIGN KEY (active_flow_id) REFERENCES flows(id)`
 
 **Migration 5: `CreateConversationFlows`**
 - `conversation_id` (references, NOT NULL, FK)

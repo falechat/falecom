@@ -140,7 +140,6 @@ end
 Auto-assign runs at these moments:
 1. **New conversation created** with `status: queued` (from `Ingestion::ProcessMessage` or after `Flows::Handoff`).
 2. **Agent goes online** — check for unassigned conversations on their channels.
-3. **Conversation unassigned** (transfer with no target user) — re-run auto-assign.
 
 In all cases, auto-assign is enqueued as `AutoAssignJob.perform_later(conversation_id)` to keep the calling path fast.
 
@@ -215,9 +214,9 @@ end
 | Type | Arguments | Result |
 |---|---|---|
 | Reassign | `to_user: pedro` | Conversation moves to Pedro, same team |
-| Team transfer | `to_team: finance` | Conversation moves to Finance team, unassigned (or auto-assigned) |
+| Team transfer | `to_team: finance` | Conversation moves to Finance team, unassigned (and triggers auto-assign for that team) |
 | Team transfer + assign | `to_team: finance, to_user: maria` | Conversation moves to Finance, assigned to Maria |
-| Unassign | `to_team: nil, to_user: nil` | Conversation goes to `queued`, back in channel pool |
+| Unassign | `to_team: nil, to_user: nil` | Conversation goes to `queued` but remains in the current team. It is NOT immediately auto-assigned again. |
 
 ### 2.6 Transfer UI
 
