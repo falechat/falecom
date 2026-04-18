@@ -536,8 +536,8 @@ This implements `ARCHITECTURE.md § Flow Engine`, `§ Conversation Status Lifecy
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **Flow versioning** — when an admin edits a flow, should active conversations see the changes or continue on the "old" flow? V1 recommendation: conversations continue with existing node links (nodes are referenced by ID). New conversations get the updated flow. No snapshot mechanism needed.
-2. **Inactivity threshold implementation** — the architecture describes two greeting paths (full menu vs. short greeting). How do we define which node is the "short greeting"? Recommendation: add an optional `short_greeting_node_id` to the Flow model. If not set, always start from root.
-3. **WhatsApp interactive messages** — Should the menu node send a WhatsApp interactive list/button message instead of plain text? Recommendation: yes, eventually. For v1, send a formatted text menu ("1 - Vendas\n2 - Suporte"). The outbound payload's `content_type` can be `text` for now; switch to `input_select` when WhatsApp interactive message support is added to the container's sender.
+1. **Flow versioning** — Decided: **No snapshots for v1**. Changes to flow nodes affect all active and future conversations immediately.
+2. **Inactivity threshold implementation** — Decided: Use **`short_greeting_node_id`** in the Flow model to handle returning contacts.
+3. **WhatsApp interactive messages** — Decided: **Formatted text menu** for v1. Switch to `input_select` and interactive buttons in a later phase.

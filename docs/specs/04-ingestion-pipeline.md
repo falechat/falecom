@@ -403,7 +403,7 @@ end
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **Conversation reopening** — When a contact sends a message to a channel with a resolved conversation, should we always create a new conversation, or should there be a "reopen window" (e.g., within 24 hours)? The architecture says "configurable" — this decision can be deferred to a follow-up spec. For now, always create new.
-2. **WhatsApp Cloud API version** — Meta deprecates API versions on a rolling basis. Should the container pin a specific API version (`v21.0`) or use `v{latest}`? Recommendation: pin the version, add it as a constant, and update it explicitly.
+1. **Conversation reopening** — Decided: **Always create new**. When a contact messages after a resolved conversation, a fresh conversation is created. This simplifies analytics and state management for v1.
+2. **WhatsApp Cloud API version** — Decided: **Pin version to v21.0**. The container will use a fixed version to ensure stability across Meta's rolling API deprecations.

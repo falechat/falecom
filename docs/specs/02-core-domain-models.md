@@ -201,7 +201,7 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **`display_id` generation** — Should `display_id` be auto-incremented via a Postgres sequence, or generated in the `Conversations::Create` service via `Conversation.maximum(:display_id).to_i + 1`? The sequence approach is safer under concurrent writes but more complex. Recommendation: use the service approach with a database advisory lock for the initial version; revisit if we see collisions.
-2. **Contact merging** — The `contacts:merged` event is in the catalogue, but the `Contacts::Merge` service is not in scope for this spec. Should the `Contact` model include a `merged_into_id` column now, or defer it? Recommendation: defer. Add the column when the merge feature is speced.
+1. **`display_id` generation** — Decided: Use the service approach with a **Postgres database advisory lock** (`with_advisory_lock`). This ensures serial, unique IDs across concurrent ingestion workers without the complexity of per-account sequences.
+2. **Contact merging** — Decided: **Defer**. The `Contact` model will not include `merged_into_id` for now. Merging will be handled as a separate future feature.

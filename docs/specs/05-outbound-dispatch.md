@@ -311,8 +311,8 @@ This implements `ARCHITECTURE.md § Outbound Message Flow` (steps 1–9) and `AR
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **Outbound queue priority** — Should outbound messages from agents have higher priority than bot-generated messages (from the flow engine)? Recommendation: same priority for v1; add priority queues if bot volume causes agent reply delays.
-2. **Message editing** — Can an agent edit a sent message? WhatsApp Cloud API doesn't support this. Recommendation: no editing in v1.
-3. **Phone number ID resolution** — For WhatsApp, we need `phone_number_id` to send. Should this come from `channel.credentials`, from ENV, or from the `/send` payload metadata? Recommendation: `channel.credentials` (already encrypted). The sender can access it via metadata passed in the outbound payload, avoiding ENV per-channel proliferation.
+1. **Outbound queue priority** — Decided: **Same priority**. Both bot and agent messages share the same outbound queue for v1.
+2. **Message editing** — Decided: **No editing** in v1.
+3. **Phone number ID resolution** — Decided: Store in **`channel.credentials`**. This keeps sensitive provider IDs encrypted and avoids environment variable proliferation.

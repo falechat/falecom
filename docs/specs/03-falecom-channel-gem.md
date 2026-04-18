@@ -303,7 +303,7 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **dry-struct vs plain Ruby structs** — dry-struct provides type coercion and nested schemas but adds a dependency. Should we consider plain `Struct` + manual validation instead? Recommendation: use dry-validation for the contract (it's the right tool for schema enforcement), but potentially use a simpler struct for the data object itself if dry-struct feels heavy.
-2. **SQS in Development** — requiring AWS SQS for local development means developers need an AWS account or LocalStack. Recommendation: Use a lightweight LocalStack docker container in `docker-compose.yml` to provide SQS locally without relying on a custom Postgres queue implementation.
+1. **dry-struct + dry-validation** — Decided: Use **dry-struct** for payload objects and **dry-validation** for contract enforcement. This provides the most robust type safety and error reporting for the inter-container contract.
+2. **SQS in Development** — Decided: Use **LocalStack** in `docker-compose.yml`. This ensures development parity with production SQS without requiring a custom Postgres-based queue adapter for dev mode.

@@ -482,8 +482,8 @@ This implements `ARCHITECTURE.md § Workspace`, `§ Conversation Transfer`, `§ 
 
 ---
 
-## 7. Open questions
+## 7. Decided Architecture (Previously Open Questions)
 
-1. **Unread count** — should the conversation list show an unread message count per conversation? If yes, where is the "last read" marker stored? Recommendation: add a `conversation_participants` table with `last_read_at` in a follow-up spec. For now, bold text on conversations with activity since the agent's last visit.
-2. **Conversation pickup** — can an agent explicitly "pick up" an unassigned conversation (self-assign)? Recommendation: yes — clicking an unassigned conversation shows a "Pick up" button that calls `Assignments::Transfer` with `to_user: current_user`.
-3. **Team-only transfer** — if a conversation is transferred to a team (no specific user) and that team has auto-assign enabled, should auto-assign run immediately? Recommendation: yes — enqueue `AutoAssignJob` after team transfer.
+1. **Unread count** — Decided: **No unread count for v1**. Conversations with activity since the agent's last visit will be shown in **bold text**. Full unread counts will be implemented in a future phase with a dedicated tracking table.
+2. **Conversation pickup** — Decided: **Yes**. Agents can explicitly "pick up" an unassigned conversation via a button that assigns it to them.
+3. **Team-only transfer** — Decided: **Yes**. Transferring to a team immediately triggers the `AutoAssignJob` for that team if enabled.
