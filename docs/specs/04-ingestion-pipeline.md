@@ -57,8 +57,12 @@ Runs inside a single database transaction. This is the core inbound path.
 ```
 Ingestion::ProcessMessage.call(channel, payload)
   1. Contacts::Resolve.call(channel, payload["contact"])
-     → find or create Contact + ContactChannel by (channel_id, source_id)
-     → merge name/phone/email/avatar from payload into Contact if provided
+     → 1.1 Check for existing ContactChannel by (channel_id, source_id).
+     → 1.2 If NOT found, perform Global Deduplication:
+         - Search Contacts by `phone_number` or `email` provided in payload.
+         - If a Match is found, create a new ContactChannel linking the new channel to the EXISTING Contact.
+     → 1.3 If still NOT found, create a NEW Contact + ContactChannel.
+     → 1.4 Merge provided name/email/avatar into the Contact (upsert).
 
   2. Conversations::ResolveOrCreate.call(channel, contact_channel)
      → find open conversation (status != resolved) for this contact_channel

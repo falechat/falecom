@@ -359,10 +359,11 @@ Admin screens (`/admin/*`) use standard data tables with search, sort, and pagin
 | Teams | Badge List | Teams the user belongs to |
 | Availability | Status Indicator | Online (Green), Busy (Yellow), Offline (Gray) |
 
-### 2.13 Contact Details & Custom Attributes
+### 2.13 Contact Management & Manual Creation
 
-Contacts are managed via the sidebar but also have a dedicated management view.
+Agents and Admins can manage contacts independently of active conversations.
 
+- **Manual Creation**: `POST /dashboard/contacts` creates a `Contact` and an optional `ContactChannel`. This allows agents to start conversations with people who haven't messaged the system yet.
 - **Attributes**: Users can add ad-hoc attributes to contacts. These are stored in `additional_attributes` jsonb.
 - **Notes**: Internal-only messages added to a conversation that don't go to the customer (sender: "System").
 - **Integration Links**: If an attribute contains a URL (e.g., "CRM Link"), it renders as a clickable external link in the sidebar.
