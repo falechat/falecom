@@ -1,0 +1,15 @@
+Source: https://ui.jetrockets.com/ui/getting_started
+Fetched: 2026-04-18
+Components copied in Phase 1B:
+  - button_component
+  - input_component
+  - label_component
+  - form_field_component
+  - navbar_component
+  - sidebar_component
+
+Form builder copied in Phase 1B:
+  - app/form_builders/jr_form_builder.rb
+
+Additional components are copied on-demand in later specs; record each
+addition by appending to the list above along with the Fetched date.
