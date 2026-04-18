@@ -1,0 +1,31 @@
+# Ruby / Bundler
+.bundle/
+vendor/bundle/
+*.gem
+
+# Rails (app-level ignores live in packages/app/.gitignore too;
+# these are safety nets at root)
+log/*.log
+tmp/
+storage/
+.env
+.env.*
+!.env.example
+
+# Vite build output
+node_modules/
+public/vite-*
+public/vite/
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Docker
+infra/**/data/
+.docker/
