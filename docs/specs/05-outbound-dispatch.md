@@ -62,8 +62,12 @@ class Dispatch::Outbound
     # Broadcast immediately — agent sees their message right away
     broadcast_message(message)
 
-    # Enqueue the actual send
-    SendMessageJob.perform_later(message.id)
+    # CRITICAL: Enqueue AFTER the transaction commits.
+    # If enqueued inside the transaction, Solid Queue workers may pick up the
+    # job before the Message row is visible, causing RecordNotFound → silent loss.
+    ActiveRecord::Base.after_all_transactions_committed do
+      SendMessageJob.perform_later(message.id)
+    end
 
     message
   end
@@ -96,16 +100,18 @@ class SendMessageJob < ApplicationJob
 
     payload = build_outbound_payload(message)
 
-    response = FaleComChannel::IngestClient.new(
-      api_url: container_url,
-      hmac_secret: ENV.fetch("FALECOM_DISPATCH_HMAC_SECRET")
-    ).post(payload, path: "/send")
+    response = FaleComChannel::DispatchClient.new(
+      container_url: container_url
+    ).send_message(payload)
 
     message.update!(
       external_id: response["external_id"],
       status: "sent"
     )
 
+    # Emit messages:sent — this is the synchronous confirmation from the provider.
+    # If the provider also sends a `sent` status webhook later,
+    # ProcessStatusUpdate's idempotency guard will skip the duplicate.
     Events::Emit.call(
       name: "messages:sent",
       subject: message,
@@ -301,7 +307,6 @@ This implements `ARCHITECTURE.md § Outbound Message Flow` (steps 1–9) and `AR
 ## 6. Risks
 
 - **Provider API latency** — Meta Cloud API can be slow (1–5s). `SendMessageJob` handles this asynchronously, but the agent may wonder why checkmarks take time. Mitigation: the optimistic rendering (pending status shown immediately) sets the right expectation.
-- **HMAC secret rotation** — If `FALECOM_DISPATCH_HMAC_SECRET` is rotated, in-flight `SendMessageJob` calls will fail. Mitigation: rotate during maintenance window; the job will retry with the new secret after deploy.
 - **Container URL misconfiguration** — if `CHANNEL_WHATSAPP_CLOUD_URL` is wrong or the container is down, all outbound messages fail. Mitigation: the `/health` endpoint on containers can be monitored; failed messages surface clearly in the dashboard.
 
 ---

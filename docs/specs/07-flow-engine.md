@@ -29,12 +29,12 @@ The Flow Engine is **inline Ruby code** — it runs inside the message ingestion
 These tables are created now, deferred from Spec 2 to keep that spec focused on core domain.
 
 **Migration 1: `CreateFlows`**
-- `account_id` (references, NOT NULL, FK)
 - `name` (string, NOT NULL)
 - `description` (text)
 - `is_active` (boolean, NOT NULL, default true)
 - `inactivity_threshold_hours` (integer, NOT NULL, default 24)
 - `root_node_id` (bigint, nullable) — FK added in a separate migration
+- `short_greeting_node_id` (bigint, nullable) — optional FK to flow_nodes. If set, returning contacts (within inactivity threshold) start here instead of root_node
 - timestamps
 
 **Migration 2: `CreateFlowNodes`**
@@ -59,13 +59,13 @@ These tables are created now, deferred from Spec 2 to keep that spec focused on 
 - `started_at` (datetime, NOT NULL, default `CURRENT_TIMESTAMP`)
 - `last_interaction_at` (datetime)
 - timestamps
-- Unique index on `(conversation_id)` — one active flow per conversation
+- Partial unique index on `(conversation_id) WHERE status = 'active'` — one active flow per conversation. Allows multiple completed/abandoned records for flow history and conversation reopen scenarios
 
 ### 2.2 Models
 
 | Model | Key associations | Key validations |
 |---|---|---|
-| `Flow` | `belongs_to :account`, `has_many :flow_nodes`, `belongs_to :root_node, class_name: "FlowNode", optional: true` | `name` presence; `node_type` enum |
+| `Flow` | `has_many :flow_nodes`, `belongs_to :root_node, class_name: "FlowNode", optional: true`, `belongs_to :short_greeting_node, class_name: "FlowNode", optional: true` | `name` presence; `node_type` enum |
 | `FlowNode` | `belongs_to :flow`, `belongs_to :next_node, class_name: "FlowNode", optional: true` | `node_type` enum; `content` presence |
 | `ConversationFlow` | `belongs_to :conversation`, `belongs_to :flow`, `belongs_to :current_node, class_name: "FlowNode", optional: true` | `status` enum; unique `conversation_id` |
 
@@ -141,7 +141,7 @@ class Flows::Start
     flow = channel.active_flow
     return unless flow&.is_active?
 
-    # Inactivity check
+    # Inactivity check: has this contact interacted recently on this channel?
     last_message_at = conversation.contact_channel
       .conversations
       .where.not(id: conversation.id)
@@ -149,8 +149,8 @@ class Flows::Start
       .maximum("messages.created_at")
 
     if last_message_at && (Time.current - last_message_at) < flow.inactivity_threshold_hours.hours
-      # Recent interaction — skip the full menu
-      greeting_node = flow.flow_nodes.find_by(node_type: "message")  # simplified
+      # Recent interaction — use short greeting if configured, otherwise root
+      greeting_node = flow.short_greeting_node || flow.root_node
     else
       greeting_node = flow.root_node
     end
@@ -177,39 +177,56 @@ The core flow engine. Called on every inbound message when `conversation.status 
 
 ```ruby
 class Flows::Advance
-  def self.call(conversation, inbound_message)
+  MAX_STEPS_PER_ADVANCE = 50
+
+  def self.call(conversation, inbound_message, step_count: 0)
+    # Guard against infinite loops from circular flow references
+    if step_count > MAX_STEPS_PER_ADVANCE
+      conversation_flow = conversation.conversation_flow
+      conversation_flow&.update!(status: "abandoned")
+      conversation.update!(status: "queued")
+      Events::Emit.call(
+        name: "flows:abandoned",
+        subject: conversation,
+        actor: :bot,
+        payload: { reason: "max_steps_exceeded", step_count: step_count }
+      )
+      return
+    end
+
     conversation_flow = conversation.conversation_flow
-    return unless conversation_flow&.active?
+    if conversation_flow.nil? || !conversation_flow.active?
+      # Flow exists but is dead (completed/abandoned) or missing.
+      # Restart the flow if the conversation is still in 'bot' mode.
+      return Flows::Start.call(conversation)
+    end
 
     node = conversation_flow.current_node
     return Flows::Handoff.call(conversation, conversation_flow) unless node
 
     case node.node_type
     when "message"
-      handle_message(conversation, conversation_flow, node)
+      handle_message(conversation, conversation_flow, node, step_count)
     when "menu"
-      handle_menu(conversation, conversation_flow, node, inbound_message)
+      handle_menu(conversation, conversation_flow, node, inbound_message, step_count)
     when "collect"
-      handle_collect(conversation, conversation_flow, node, inbound_message)
+      handle_collect(conversation, conversation_flow, node, inbound_message, step_count)
     when "handoff"
       handle_handoff(conversation, conversation_flow, node)
     when "branch"
-      handle_branch(conversation, conversation_flow, node)
+      handle_branch(conversation, conversation_flow, node, step_count)
     end
 
-    Events::Emit.call(
-      name: "flows:advanced",
-      subject: conversation,
-      actor: :bot,
-      payload: { node_id: node.id, node_type: node.node_type }
-    )
+    # NOTE: flows:advanced is emitted ONLY inside handlers that actually advance
+    # to a new node. Invalid menu selections and failed collect validations do
+    # NOT emit this event. See handle_menu/handle_collect for the gating logic.
   end
 end
 ```
 
 **`handle_message`:**
 ```ruby
-def handle_message(conversation, cf, node)
+def handle_message(conversation, cf, node, step_count)
   Dispatch::Outbound.call(
     conversation: conversation,
     content: node.content["text"],
@@ -217,33 +234,35 @@ def handle_message(conversation, cf, node)
     actor: :bot
   )
   advance_to(cf, node.next_node_id)
+  emit_advanced_event(conversation, node)
   # If the next node is also a message or branch, execute it immediately
   # (don't wait for another inbound message)
   next_node = cf.reload.current_node
   if next_node && %w[message branch].include?(next_node.node_type)
-    Flows::Advance.call(conversation, nil)
+    Flows::Advance.call(conversation, nil, step_count: step_count + 1)
   end
 end
 ```
 
 **`handle_menu`:**
 ```ruby
-def handle_menu(conversation, cf, node, inbound_message)
+def handle_menu(conversation, cf, node, inbound_message, step_count)
   if inbound_message.nil?
     # First time hitting this node — send the menu
     formatted = format_menu(node.content)
     Dispatch::Outbound.call(conversation: conversation, content: formatted, content_type: "text", actor: :bot)
-    return # Wait for the contact's response
+    return # Wait for the contact's response — no flows:advanced event
   end
 
   # Contact responded — match option
   selected = node.content["options"].find { |o| o["key"] == inbound_message.content.strip }
   if selected
     advance_to(cf, selected["next_node_id"])
+    emit_advanced_event(conversation, node)  # only emit on actual advance
     next_node = cf.reload.current_node
-    Flows::Advance.call(conversation, nil) if next_node
+    Flows::Advance.call(conversation, nil, step_count: step_count + 1) if next_node
   else
-    # Invalid selection — re-send menu
+    # Invalid selection — re-send menu, no flows:advanced event
     Dispatch::Outbound.call(
       conversation: conversation,
       content: "Não entendi. Por favor, escolha uma opção:\n#{format_menu(node.content)}",
@@ -256,10 +275,10 @@ end
 
 **`handle_collect`:**
 ```ruby
-def handle_collect(conversation, cf, node, inbound_message)
+def handle_collect(conversation, cf, node, inbound_message, step_count)
   if inbound_message.nil?
     Dispatch::Outbound.call(conversation: conversation, content: node.content["text"], content_type: "text", actor: :bot)
-    return
+    return  # no flows:advanced event
   end
 
   value = inbound_message.content.strip
@@ -267,9 +286,11 @@ def handle_collect(conversation, cf, node, inbound_message)
     cf.state[node.content["variable"]] = value
     cf.save!
     advance_to(cf, node.next_node_id)
+    emit_advanced_event(conversation, node)  # only emit on actual advance
     next_node = cf.reload.current_node
-    Flows::Advance.call(conversation, nil) if next_node
+    Flows::Advance.call(conversation, nil, step_count: step_count + 1) if next_node
   else
+    # Invalid input — re-send prompt, no flows:advanced event
     Dispatch::Outbound.call(
       conversation: conversation,
       content: "Resposta inválida. #{node.content["text"]}",
@@ -277,6 +298,15 @@ def handle_collect(conversation, cf, node, inbound_message)
       actor: :bot
     )
   end
+end
+
+def emit_advanced_event(conversation, node)
+  Events::Emit.call(
+    name: "flows:advanced",
+    subject: conversation,
+    actor: :bot,
+    payload: { node_id: node.id, node_type: node.node_type }
+  )
 end
 ```
 
@@ -336,7 +366,8 @@ class Flows::Handoff
 
     # Trigger auto-assign if configured
     if conversation.channel.auto_assign?
-      AutoAssignJob.perform_later(conversation.id)
+      # Pass a recursion depth to prevent infinite auto-assign loops
+      AutoAssignJob.perform_later(conversation.id, depth: 0)
     end
 
     # Broadcast to workspace
@@ -500,6 +531,7 @@ This implements `ARCHITECTURE.md § Flow Engine`, `§ Conversation Status Lifecy
 
 - **Flow execution in-transaction** — `Flows::Advance` runs inside the ingestion transaction, including `Dispatch::Outbound` which enqueues `SendMessageJob`. If the transaction is slow, it blocks the ingest. Mitigation: `Dispatch::Outbound` only creates a DB record and enqueues a job — no external HTTP calls inside the transaction. The actual provider call happens async in the job.
 - **Infinite loops** — a misconfigured flow with circular `next_node_id` references could loop forever. Mitigation: add a max-steps guard (e.g., 50 nodes per `Advance` call). If exceeded, auto-handoff with an error event.
+- **Auto-Assign Loops** — If auto-assign triggers something that unassigns and re-queues, it could loop. Mitigation: `AutoAssignJob` accepts a `depth` parameter; if `depth > 3`, it aborts and leaves the conversation unassigned for human intervention.
 - **Node deletion while in use** — deleting a FlowNode that a `ConversationFlow` currently points to would break the flow. Mitigation: soft-delete or disallow deleting nodes referenced by active conversation flows.
 
 ---

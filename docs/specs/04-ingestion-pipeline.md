@@ -29,10 +29,8 @@ After this spec, a message pulled from an SQS queue → WhatsApp container → R
 POST /internal/ingest
 ```
 
-**Authentication:**
-- HMAC verification via `FaleComChannel::Hmac.verify!` (or a Ruby-side reimplementation).
-- Checks `X-FaleCom-Signature` header.
-- Rejects with `401 Unauthorized` if signature is invalid. Note: We don't strictly validate timestamps/replay since we are pulling securely from SQS queues.
+**Security:**
+- We rely on the secure ingestion path: AWS API Gateway only accepts webhooks from providers (using provider-specific signature validation in Layer 2) and pushes to SQS. Rails only accepts POSTs to `/internal/ingest` from internal IPs or via a shared secret if needed, but for v1, we rely on the network boundary and the fact that we are pulling from our own SQS.
 
 **Channel registration check:**
 ```ruby
@@ -50,7 +48,7 @@ return head :unprocessable_entity unless channel&.active?
 | `inbound_message` | `Ingestion::ProcessMessage.call(channel, payload)` |
 | `outbound_status_update` | `Ingestion::ProcessStatusUpdate.call(channel, payload)` |
 
-**Response:** `200 OK` with `{ "status": "ok" }` on success. `422` on validation failure. `401` on auth failure.
+**Response:** `200 OK` with `{ "status": "ok" }` on success. `422` on validation failure.
 
 ### 2.2 `Ingestion::ProcessMessage` Service
 
@@ -66,7 +64,7 @@ Ingestion::ProcessMessage.call(channel, payload)
      → find open conversation (status != resolved) for this contact_channel
      → if none exists: create new conversation
        - status: "bot" if channel has an active flow, else "queued"
-       - display_id: next per-account sequence
+       - display_id: next sequence
        - last_activity_at: now
      → emit conversations:created event if new
 
@@ -98,17 +96,20 @@ Updates message delivery status.
 ```
 Ingestion::ProcessStatusUpdate.call(channel, payload)
   1. Find message by (channel_id, external_id)
-     → if not found, log warning and return (provider may send statuses for messages we didn't send)
+     → if not found: raise error to trigger Solid Queue retry with delay (5s).
+     → provider may send statuses before we've finished persisting the message record.
 
-  2. Update message.status to payload["status"]
+  2. Idempotency guard: if message.status == payload["status"], return (no-op on SQS redelivery)
+
+  3. Update message.status to payload["status"]
      → only if the new status is "later" in the lifecycle (sent → delivered → read)
      → failed can arrive at any point
 
-  3. If payload["error"], set message.error
+  4. If payload["error"], set message.error
 
-  4. Emit messages:#{status} event (messages:delivered, messages:read, messages:failed)
+  5. Emit messages:#{status} event (messages:sent, messages:delivered, messages:read, messages:failed)
 
-  5. Broadcast updated message status via Turbo Stream
+  6. Broadcast updated message status via Turbo Stream
 ```
 
 ### 2.4 `Contacts::Resolve` Service
@@ -122,14 +123,19 @@ class Contacts::Resolve
     )
 
     if contact_channel.new_record?
-      contact = channel.account.contacts.create!(
+      # Best-effort deduplication: check if a contact with the same phone/email
+      # already exists in this account before creating a new one.
+      contact = nil
+      contact = Contact.find_by(phone_number: contact_data["phone_number"]) if contact_data["phone_number"].present?
+      contact ||= Contact.find_by(email: contact_data["email"]) if contact_data["email"].present?
+      contact ||= Contact.create!(
         name: contact_data["name"],
         phone_number: contact_data["phone_number"],
         email: contact_data["email"]
       )
       contact_channel.contact = contact
       contact_channel.save!
-      Events::Emit.call(name: "contacts:created", subject: contact, actor: :system)
+      Events::Emit.call(name: "contacts:created", subject: contact, actor: :system) unless contact.previously_new_record? == false
       Events::Emit.call(name: "contact_channels:created", subject: contact_channel, actor: :system)
     else
       contact = contact_channel.contact
@@ -161,11 +167,10 @@ class Conversations::ResolveOrCreate
       conversation
     else
       conversation = channel.conversations.create!(
-        account: channel.account,
         contact: contact,
         contact_channel: contact_channel,
         status: channel.active_flow_id? ? "bot" : "queued",
-        display_id: next_display_id(channel.account),
+        display_id: next_display_id,
         last_activity_at: Time.current
       )
       Events::Emit.call(
@@ -174,6 +179,14 @@ class Conversations::ResolveOrCreate
         actor: :system
       )
       conversation
+    end
+  end
+
+  # Advisory lock serializes display_id generation.
+  # This prevents duplicate display_ids under concurrent ingestion.
+  def self.next_display_id
+    ActiveRecord::Base.with_advisory_lock("display_id") do
+      (Conversation.maximum(:display_id) || 0) + 1
     end
   end
 end
@@ -288,7 +301,7 @@ Uncomment the `channel-whatsapp-cloud` and `app` services in `infra/docker-compo
 After this spec:
 
 - Messages can enter the system end-to-end: SQS → container → Rails → database.
-- The `/internal/ingest` endpoint is live and HMAC-protected.
+- The `/internal/ingest` endpoint is live.
 - Contact resolution, conversation management, and message creation are working services.
 - Idempotency ensures SQS redelivery never creates duplicates.
 - The WhatsApp Cloud container is the reference implementation for all future channel containers.
@@ -300,9 +313,8 @@ This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus f
 
 ## 5. Acceptance criteria
 
-1. `POST /internal/ingest` with a valid HMAC-signed inbound message payload returns 200 and creates a Message record.
-2. The same POST with an invalid HMAC returns 401.
-3. The same POST with an unregistered `channel_type + identifier` returns 422.
+1. `POST /internal/ingest` with a valid inbound message payload returns 200 and creates a Message record.
+2. The same POST with an unregistered `channel_type + identifier` returns 422.
 4. Sending the same `external_id` twice creates only one Message (idempotency).
 5. A new contact arriving on a channel creates a Contact + ContactChannel.
 6. A message on a channel with no open conversation creates a new Conversation.
