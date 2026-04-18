@@ -326,7 +326,73 @@ This implements `ARCHITECTURE.md § Inbound Message Flow` (steps 1–10, minus f
 
 ---
 
-## 6. Risks
+## 6. Developer Utilities: Manual Ingestion
+
+To facilitate rapid development of the UI and Flow Engine without running the full container/SQS stack, developers can use these methods to inject data directly into the Rails API.
+
+### 6.1 Reference Common Payload (JSON)
+
+Save this as `test_message.json`:
+```json
+{
+  "type": "inbound_message",
+  "channel": {
+    "type": "whatsapp_cloud",
+    "identifier": "+5511999999999"
+  },
+  "contact": {
+    "source_id": "5511988888888",
+    "name": "João Silva",
+    "phone_number": "+5511988888888"
+  },
+  "message": {
+    "external_id": "WAMID.12345",
+    "content": "Olá, gostaria de saber mais sobre o produto.",
+    "content_type": "text",
+    "sent_at": "2026-04-17T12:00:00Z"
+  }
+}
+```
+
+### 6.2 Simple `curl` Mock
+Since HMAC is disabled for internal ingestion, you can POST directly to the endpoint:
+```bash
+curl -X POST http://localhost:3000/internal/ingest \
+     -H "Content-Type: application/json" \
+     -d @test_message.json
+```
+
+### 6.3 Rails Mock Task (`rake ingest:mock`)
+Useful for generating many conversations at once.
+
+```ruby
+# lib/tasks/ingest.rake
+namespace :ingest do
+  task :mock, [:content] => :environment do |t, args|
+    channel = Channel.first || abort("No channel found. Run seeds first.")
+    content = args[:content] || "Mock message at #{Time.current}"
+    
+    payload = {
+      "type" => "inbound_message",
+      "channel" => { "type" => channel.channel_type, "identifier" => channel.identifier },
+      "contact" => { "source_id" => "mock_user_#{rand(1000)}", "name" => "Mock User" },
+      "message" => {
+        "external_id" => "MOCK_#{SecureRandom.hex(4)}",
+        "content" => content,
+        "content_type" => "text",
+        "sent_at" => Time.current.iso8601
+      }
+    }
+    
+    Ingestion::ProcessMessage.call(channel, payload)
+    puts "Ingested: #{content}"
+  end
+end
+```
+
+---
+
+## 7. Risks
 
 - **Meta webhook format changes** — Meta occasionally modifies their webhook payload structure. Mitigation: the parser is isolated in one file; tests pin the expected format; the `raw` field preserves the original for debugging.
 - **Transaction scope of ProcessMessage** — wrapping contact resolve + conversation resolve + message create in one transaction is clean but could be slow under load. Mitigation: the transaction only hits Postgres (no external calls inside it); attachments are downloaded asynchronously.
