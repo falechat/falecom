@@ -5,9 +5,9 @@
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**
-> - [Spec 2: Core Domain Models](./2026-04-17-core-domain-models.md) (all models exist)
-> - [Spec 4: Ingestion Pipeline](./2026-04-17-ingestion-pipeline.md) (conversations are being created)
-> - [Spec 5: Outbound Dispatch](./2026-04-17-outbound-dispatch.md) (agents can reply)
+> - [Spec 2: Core Domain Models](./02-core-domain-models.md) (all models exist)
+> - [Spec 4: Ingestion Pipeline](./04-ingestion-pipeline.md) (conversations are being created)
+> - [Spec 5: Outbound Dispatch](./05-outbound-dispatch.md) (agents can reply)
 
 ---
 

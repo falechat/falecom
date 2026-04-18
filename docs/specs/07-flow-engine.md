@@ -5,10 +5,10 @@
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**
-> - [Spec 2: Core Domain Models](./2026-04-17-core-domain-models.md) (core tables exist)
-> - [Spec 4: Ingestion Pipeline](./2026-04-17-ingestion-pipeline.md) (messages enter the system)
-> - [Spec 5: Outbound Dispatch](./2026-04-17-outbound-dispatch.md) (bot can send replies)
-> - [Spec 6: Assignment, Transfer & Workspace](./2026-04-17-assignment-transfer-workspace.md) (handoff has a destination)
+> - [Spec 2: Core Domain Models](./02-core-domain-models.md) (core tables exist)
+> - [Spec 4: Ingestion Pipeline](./04-ingestion-pipeline.md) (messages enter the system)
+> - [Spec 5: Outbound Dispatch](./05-outbound-dispatch.md) (bot can send replies)
+> - [Spec 6: Assignment, Transfer & Workspace](./06-assignment-transfer-workspace.md) (handoff has a destination)
 
 ---
 

@@ -5,8 +5,8 @@
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**
-> - [Spec 2: Core Domain Models](./2026-04-17-core-domain-models.md) (database schema exists)
-> - [Spec 3: falecom_channel Gem](./2026-04-17-falecom-channel-gem.md) (payload schema, queue adapter, consumer, ingest client exist)
+> - [Spec 2: Core Domain Models](./02-core-domain-models.md) (database schema exists)
+> - [Spec 3: falecom_channel Gem](./03-falecom-channel-gem.md) (payload schema, queue adapter, consumer, ingest client exist)
 
 ---
 

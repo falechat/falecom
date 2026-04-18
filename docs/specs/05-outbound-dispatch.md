@@ -5,9 +5,9 @@
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**
-> - [Spec 2: Core Domain Models](./2026-04-17-core-domain-models.md) (Message model exists)
-> - [Spec 3: falecom_channel Gem](./2026-04-17-falecom-channel-gem.md) (SendServer, HMAC, Payload exist)
-> - [Spec 4: Ingestion Pipeline](./2026-04-17-ingestion-pipeline.md) (IngestController, WhatsApp container exist)
+> - [Spec 2: Core Domain Models](./02-core-domain-models.md) (Message model exists)
+> - [Spec 3: falecom_channel Gem](./03-falecom-channel-gem.md) (SendServer, HMAC, Payload exist)
+> - [Spec 4: Ingestion Pipeline](./04-ingestion-pipeline.md) (IngestController, WhatsApp container exist)
 
 ---
 

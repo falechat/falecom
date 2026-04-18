@@ -4,7 +4,7 @@
 > **Execution Order:** 3 of 7 — after Spec 1 *(can run in parallel with Spec 2)*
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
-> **Depends on:** [Spec 1: Monorepo Foundation](./2026-04-17-monorepo-foundation.md) (monorepo layout exists)
+> **Depends on:** [Spec 1: Monorepo Foundation](./01-monorepo-foundation.md) (monorepo layout exists)
 
 ---
 
