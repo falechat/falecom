@@ -180,7 +180,8 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 │  Postgres (single schema):                               │
 │    · users, teams, team_members, channels,               │
 │      channel_teams                                       │
-│    · contacts, contact_channels, conversations, messages │
+│    · contacts, conversations, messages                   │
+    · contact_channels (Omnichannel Identity Table)        │
 │    · flows, flow_nodes, conversation_flows               │
 │    · automation_rules, events                            │
 │    · sessions                                            │
@@ -215,7 +216,11 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
    · looks up Channel by (channel.type, channel.identifier) — rejects if unknown
    · hands off to Ingestion::ProcessMessage
 9. Ingestion::ProcessMessage runs inside a transaction:
-   · Contacts::Resolve → find or create contact + contact_channel
+   · Contacts::Resolve → Performs Omnichannel Identification:
+       1. Exact Match: finds ContactChannel by (channel_id, source_id)
+       2. Cross-Instance Match: searches same source_id in other channels of the same type
+       3. Universal Match: searches Contact by phone_number/email
+       4. Link/Create: links the existing Contact or creates a new one
    · Conversations::ResolveOrCreate → find open conversation or create new
    · Messages::Create → persist the inbound message (with metadata + raw)
    · If conversation.status == "bot" and channel has a flow:
