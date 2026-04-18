@@ -1,11 +1,35 @@
-<%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
-<%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
+<% content_for :title, "Sign in — FaleCom" %>
 
-<%= form_with url: session_path do |form| %>
-  <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
-  <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "Enter your password", maxlength: 72 %><br>
-  <%= form.submit "Sign in" %>
-<% end %>
-<br>
+<div class="mx-auto flex min-h-[80vh] max-w-sm flex-col justify-center">
+  <h1 class="mb-6 text-2xl font-semibold tracking-tight">Sign in to FaleCom</h1>
 
-<%= link_to "Forgot password?", new_password_path %>
+  <% if alert = flash[:alert] %>
+    <div role="alert" class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      <%= alert %>
+    </div>
+  <% end %>
+
+  <%= form_with url: session_path, class: "space-y-4" do |f| %>
+    <%= f.jr_text_field :email_address,
+          label: "Email",
+          required: true,
+          autofocus: true,
+          autocomplete: "email" %>
+
+    <%= f.jr_password_field :password,
+          label: "Password",
+          required: true,
+          autocomplete: "current-password" %>
+
+    <%= render Ui::ButtonComponent.new(
+      label: "Sign in",
+      type: "submit",
+      variant: "primary",
+      class: "w-full"
+    ) %>
+  <% end %>
+
+  <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+    <%= link_to "Forgot password?", new_password_path, class: "underline" %>
+  </p>
+</div>

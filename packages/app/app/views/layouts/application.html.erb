@@ -1,28 +1,38 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en" class="h-full">
   <head>
-    <title><%= content_for(:title) || "App" %></title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="App">
-    <meta name="mobile-web-app-capable" content="yes">
+    <title><%= content_for(:title) || "FaleCom" %></title>
+
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
-    <%= yield :head %>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
-
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag "application" %>
+    <%= vite_client_tag %>
+    <%= vite_javascript_tag "application" %>
+    <%= vite_stylesheet_tag "application" %>
   </head>
 
-  <body>
-    <%= yield %>
+  <body class="h-full bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <div class="flex min-h-full">
+      <% if authenticated? %>
+        <%= render Ui::SidebarComponent.new(
+          items: [
+            { label: "Dashboard", href: root_path, icon: "home" }
+          ]
+        ) %>
+      <% end %>
+
+      <div class="flex min-w-0 flex-1 flex-col">
+        <%= render Ui::NavbarComponent.new(
+          brand: "FaleCom",
+          user: Current.user
+        ) %>
+
+        <main class="flex-1 px-6 py-8">
+          <%= yield %>
+        </main>
+      </div>
+    </div>
   </body>
 </html>
