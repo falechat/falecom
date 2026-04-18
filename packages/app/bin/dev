@@ -1,2 +1,9 @@
-#!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v foreman >/dev/null 2>&1; then
+  echo "foreman is required. Install it with: gem install foreman" >&2
+  exit 1
+fi
+
+exec foreman start -f Procfile.dev "$@"
