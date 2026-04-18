@@ -1,6 +1,7 @@
 # Spec: Outbound Dispatch
 
 > **Phase:** 4 (Outbound)
+> **Execution Order:** 5 of 7 — after Spec 4
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**

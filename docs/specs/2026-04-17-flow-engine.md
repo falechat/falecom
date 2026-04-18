@@ -1,6 +1,7 @@
 # Spec: Flow Engine
 
 > **Phase:** 6 (Flow Engine)
+> **Execution Order:** 7 of 7 — after Spec 6 (last spec)
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**

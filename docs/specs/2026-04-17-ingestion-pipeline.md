@@ -1,6 +1,7 @@
 # Spec: Ingestion Pipeline (Rails + WhatsApp Cloud Container)
 
 > **Phase:** 3 (Ingestion pipeline) — Rails endpoint + first container
+> **Execution Order:** 4 of 7 — after Specs 2 and 3 are both complete
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**

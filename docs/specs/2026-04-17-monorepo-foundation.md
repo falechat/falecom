@@ -1,6 +1,7 @@
 # Spec: Monorepo Foundation & Dev Environment
 
 > **Phase:** 1 (Foundation)
+> **Execution Order:** 1 of 7 — execute first, no dependencies
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 

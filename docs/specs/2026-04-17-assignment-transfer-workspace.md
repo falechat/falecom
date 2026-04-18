@@ -1,6 +1,7 @@
 # Spec: Assignment, Transfer & Workspace
 
 > **Phase:** 5 (Assignment, Transfer, Teams)
+> **Execution Order:** 6 of 7 — after Spec 5
 > **Date:** 2026-04-17
 > **Status:** Draft — awaiting approval
 > **Depends on:**
