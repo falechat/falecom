@@ -37,11 +37,11 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 | Outbound dispatch | HTTP + Solid Queue retries | Rails enqueues job → job POSTs to channel container `/send` endpoint |
 | Flow Engine | Inline Ruby service | No webhook roundtrip. Flow advances inside the ingestion transaction |
 | Flow builder UI | Simple Rails forms (v1) | Visual canvas on roadmap |
-| API surface (external) | Intentional, explicit | Only `/internal/ingest` (HMAC-auth), public `/api/v1/*` (future), `/mcp/*` (future) |
+| API surface (external) | Intentional, explicit | Only `/internal/ingest`, public `/api/v1/*` (future), `/mcp/*` (future) |
 | Internal API access | Server-side Rails controllers | Dashboard renders HTML. No JSON proxy layer inside the monolith |
 | Deployment | Docker Compose | Single compose file for dev. Each service scales independently in prod |
 | ORM | ActiveRecord | Rails default |
-| Multi-tenancy | Account-scoped at the model level | Single-tenant in v1 but FK present for future growth |
+| Multi-tenancy | None | Standalone application for a single business. No tenant splitting in v1. |
 
 ---
 
@@ -50,7 +50,6 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 | Term | Definition |
 |---|---|
 | **FaleCom** | The platform. "Fale Com" = talk with (Portuguese) |
-| **Account** | Tenant boundary. Everything belongs to an account |
 | **User** | Internal person using the platform — agent, admin, supervisor |
 | **Contact** | The person interacting with the business via a channel. Not a user |
 | **Channel** | A registered provider instance — a specific WhatsApp number, Instagram account, Telegram bot, etc. Identified by `channel_type` + `identifier`. "WhatsApp Vendas" and "WhatsApp Suporte" are two distinct Channels, both of `channel_type: whatsapp_cloud`. Holds credentials, auto-assign policy, the active flow, and is where messages arrive |
@@ -137,7 +136,7 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 │   · normalizes to the Common Ingestion Payload:          │
 │        - required common fields                          │
 │        - provider-specific extras in `metadata`          │
-│   · POSTs to Rails /internal/ingest with HMAC signature  │
+│   · POSTs to Rails /internal/ingest (secure pull from SQS)  │
 │   · exposes /send endpoint for outbound dispatch         │
 │                                                          │
 │   Stateless. No database. No domain logic.               │
@@ -151,7 +150,7 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 │        Hotwire · ViewComponent · JR Components · Vite    │
 │                                                          │
 │  Controllers:                                            │
-│    · Internal::IngestController (HMAC-auth)              │
+│    · Internal::IngestController                          │
 │        - looks up the Channel by type + identifier       │
 │        - rejects if channel is not registered            │
 │        - dispatches to Ingestion::ProcessMessage         │
@@ -179,7 +178,7 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 │    · ConversationChannel                                 │
 │                                                          │
 │  Postgres (single schema):                               │
-│    · accounts, users, teams, team_members, channels,     │
+│    · users, teams, team_members, channels,               │
 │      channel_teams                                       │
 │    · contacts, contact_channels, conversations, messages │
 │    · flows, flow_nodes, conversation_flows               │
@@ -212,9 +211,7 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 4. whatsapp-cloud channel container pulls from sqs-whatsapp-cloud
 5. Container validates the Meta signature on the raw payload
 6. Container parses Meta payload, normalizes to Common Ingestion Payload
-7. Container POSTs to Rails /internal/ingest with HMAC signature
 8. Rails Internal::IngestController:
-   · verifies HMAC + timestamp
    · looks up Channel by (channel.type, channel.identifier) — rejects if unknown
    · hands off to Ingestion::ProcessMessage
 9. Ingestion::ProcessMessage runs inside a transaction:
@@ -239,7 +236,6 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 4. Rails enqueues SendMessageJob (Solid Queue)
 5. SendMessageJob picks up the message, looks up the channel container URL
    for the message's channel_type, POSTs to {container}/send with:
-     · HMAC signature (FALECOM_DISPATCH_HMAC_SECRET)
      · outbound payload (channel, contact.source_id, message, metadata)
 6. Channel container calls provider API (WhatsApp Cloud, Z-API, etc),
    returns { external_id } synchronously to Rails
@@ -441,7 +437,7 @@ A message arriving for a channel that isn't registered is a configuration error 
 
 ## Shared Infrastructure — `falecom_channel` gem
 
-Every channel container does the same four infrastructure jobs: pull from SQS, validate the HMAC when talking to Rails, produce a valid Common Ingestion Payload, and expose a `/send` endpoint. Only the *translation* between provider-specific format and the common payload is unique per channel. To avoid copying infrastructure code across five containers, the common parts live in an internal gem, `falecom_channel`, consumed via path in the monorepo.
+Every channel container does the same four infrastructure jobs: pull from SQS, produce a valid Common Ingestion Payload, and expose a `/send` endpoint. Only the *translation* between provider-specific format and the common payload is unique per channel. To avoid copying infrastructure code across five containers, the common parts live in an internal gem, `falecom_channel`, consumed via path in the monorepo.
 
 ### What the gem provides
 
@@ -449,8 +445,8 @@ Every channel container does the same four infrastructure jobs: pull from SQS, v
 |---|---|
 | `FaleComChannel::Consumer` | SQS polling loop with configurable concurrency, visibility timeout, ack/nack, DLQ config, graceful shutdown |
 | `FaleComChannel::Payload` | Common Ingestion Payload schema (dry-struct + dry-validation). Single source of truth for the contract. Changes here ripple to every container via `bundle update` |
-| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. HMAC signing, timestamp header, retry on 5xx, timeouts, structured logging |
-| `FaleComChannel::SendServer` | Roda base app for `/send`. HMAC verification, request logging, standard error responses. Containers mount their own handler inside |
+| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. Retry on 5xx, timeouts, structured logging |
+| `FaleComChannel::SendServer` | Roda base app for `/send`. Request logging, standard error responses. Containers mount their own handler inside |
 | `FaleComChannel::Logging` | Structured JSON logging helpers with correlation IDs that flow through the whole pipeline |
 
 ### What the gem deliberately does NOT provide
@@ -482,7 +478,7 @@ class WhatsappCloudContainer
 end
 ```
 
-The `/send` endpoint looks equally thin — gem handles HMAC + routing, container handles the Meta Graph API call.
+The `/send` endpoint looks equally thin — gem handles routing, container handles the Meta Graph API call.
 
 ### Versioning and release
 
@@ -543,7 +539,7 @@ When starting a flow:
     → NO:  start with "Como posso ajudar?"
 ```
 
-A single `AutoResolveStaleConversationsJob` runs on a cron schedule (Solid Queue recurring job) and resolves conversations that have been inactive for longer than the account's `auto_resolve_duration` setting. Clean and simple.
+A single `AutoResolveStaleConversationsJob` runs on a cron schedule (Solid Queue recurring job) and resolves conversations that have been inactive for longer than the `auto_resolve_duration` setting. Clean and simple.
 
 ---
 
@@ -619,7 +615,7 @@ Everything. There is no other system in the loop holding domain state.
 User → belongs to Teams → Teams attend Channels → Channels receive Conversations
 ```
 
-The workspace view is: "the conversations on channels attended by teams the logged-in user belongs to". Admins see everything in their account; agents see only what their teams cover.
+The workspace view is: "the conversations on channels attended by teams the logged-in user belongs to". Admins see everything; agents see only what their teams cover.
 
 ### Sub-views within the workspace
 
@@ -631,7 +627,7 @@ The dashboard offers filtered lenses over the same underlying set of conversatio
 | **Unassigned** | `conversations.assignee_id IS NULL AND conversations.status = 'queued'` |
 | **My team** | `conversations.team_id IN (current_user.teams.pluck(:id))` |
 | **By channel** | `conversations.channel_id = ?` — the agent picks from the list of channels their teams attend |
-| **All** (admin only) | everything in `current_user.account` |
+| **All** (admin only) | everything |
 
 Each sub-view reuses the same conversation list component and the same real-time wiring. Switching between sub-views is a Turbo Frame navigation — the URL changes, the list re-renders, the WebSocket subscription narrows. No page reload.
 
@@ -685,7 +681,6 @@ end
 Every event below is emitted somewhere. If a code path changes state without emitting one of these (or a new one added here), it is a bug.
 
 ```
-accounts:*           created · updated
 users:*              created · invited · activated · deactivated
                      signed_in · signed_out · role_changed
                      availability_changed
@@ -696,8 +691,9 @@ channel_teams:*      added · removed
 contacts:*           created · updated · merged · deleted
 contact_channels:*   created · deleted
 conversations:*      created · status_changed · assigned · unassigned
-                     transferred · resolved · reopened
-messages:*           inbound · outbound · delivered · read · failed
+                     transferred · resolved
+                     (reopened — deferred until lock_to_single_conversation is implemented)
+messages:*           inbound · outbound · sent · delivered · read · failed
 flows:*              created · updated · activated · deactivated · deleted
                      started · advanced · handoff · completed · abandoned
 automation_rules:*   created · updated · deleted · applied
@@ -745,7 +741,7 @@ All three are implemented by the same service (`Assignments::Transfer`) with dif
 |---|---|
 | **Agent** | Conversations assigned to them |
 | **Supervisor** | Any conversation on channels attended by any of their teams |
-| **Admin** | Anything in their account |
+| **Admin** | Anything |
 
 Enforced in the service via a policy object (`ConversationPolicy#transferable_by?`). Rejected transfers do not emit events — they raise an authorization error.
 
@@ -788,7 +784,7 @@ If the note is empty, only the Event is recorded — no system message is create
 
 - **No approval workflow.** The spec might grow one, but v1 is "if you have permission, it's done, and it's logged." Supervisors review via audit log if needed.
 - **No transfer-back button.** A transferred-back conversation is just another transfer. Simpler model.
-- **No cross-account transfer.** Conversations never leave their account. Hard boundary.
+- **No cross-account transfer.** Conversations never leave the platform instance.
 
 ---
 

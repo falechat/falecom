@@ -13,8 +13,8 @@
 Every channel container (WhatsApp Cloud, Z-API, Evolution, Instagram, Telegram) performs the same four infrastructure jobs:
 
 1. Pull messages from a queue (SQS in prod, Postgres in dev).
-2. POST normalized payloads to Rails `/internal/ingest` with HMAC authentication.
-3. Expose a `/send` endpoint for outbound dispatch, also HMAC-authenticated.
+2. POST normalized payloads to Rails `/internal/ingest`.
+3. Expose a `/send` endpoint for outbound dispatch.
 4. Log with structured JSON and correlation IDs.
 
 Only the *translation* between provider format and the common payload is unique per channel. Without a shared gem, this infrastructure code would be duplicated across five containers.
@@ -172,16 +172,13 @@ Faraday HTTP client for `POST /internal/ingest`.
 
 ```ruby
 client = FaleComChannel::IngestClient.new(
-  api_url: ENV.fetch("FALECOM_API_URL"),
-  hmac_secret: ENV.fetch("FALECOM_INGEST_HMAC_SECRET")
+  api_url: ENV.fetch("FALECOM_API_URL")
 )
 
 client.post(payload_hash)
 ```
 
 Behaviors:
-- Sets `X-FaleCom-Signature: sha256=<HMAC-SHA256 of JSON body>`.
-- Sets `X-FaleCom-Timestamp: <unix timestamp>`.
 - Retries on 5xx responses (3 retries, exponential backoff).
 - Raises `FaleComChannel::IngestError` on persistent failure.
 - Timeouts: connect 5s, read 10s.
@@ -198,7 +195,6 @@ class FaleComChannel::SendServer < Roda
 
   route do |r|
     r.post "send" do
-      verify_hmac!(r)  # raises 401 on failure
       payload = FaleComChannel::Payload.parse(r.params)
       result = handle_send(payload)
       { external_id: result.external_id }
@@ -216,9 +212,7 @@ end
 ```
 
 Behaviors:
-- HMAC verification using `FALECOM_DISPATCH_HMAC_SECRET`.
-- Same HMAC scheme as ingest: `X-FaleCom-Signature` + `X-FaleCom-Timestamp`.
-- Standard error responses: 401 (bad HMAC), 422 (validation error), 500 (provider error).
+- Standard error responses: 422 (validation error), 500 (provider error).
 - `/health` endpoint for container health checks.
 - Request logging with correlation ID.
 
@@ -239,23 +233,32 @@ FaleComChannel.logger.info(
 - Correlation ID generated per message, flows through consumer → ingest client → Rails.
 - Passed via `X-FaleCom-Correlation-Id` header.
 
-### 2.8 HMAC Utilities
 
-Shared between `IngestClient` and `SendServer`:
+### 2.9 `FaleComChannel::DispatchClient`
+
+HTTP client for `POST /send` on channel containers. Deliberately separate from `IngestClient` — different secret, no internal retries (Solid Queue handles retry), longer timeouts for provider API latency.
 
 ```ruby
-module FaleComChannel::Hmac
-  def self.sign(body, secret)
-    "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", secret, body)}"
-  end
+client = FaleComChannel::DispatchClient.new(
+  container_url: ENV.fetch("CHANNEL_WHATSAPP_CLOUD_URL")
+)
 
-  def self.verify!(request_signature, body, secret, timestamp:, max_age: 300)
-    # Verify timestamp is within max_age seconds
-    # Verify signature matches
-    # Raises FaleComChannel::HmacVerificationError on failure
-  end
-end
+response = client.send_message(payload_hash)
+# => { "external_id" => "wamid.HBgXXX..." }
 ```
+
+Behaviors:
+- **No internal retries** — a single HTTP attempt. Retry is the caller's responsibility (Solid Queue).
+- Timeouts: connect 5s, read 30s (provider APIs can be slow).
+- Raises `FaleComChannel::DispatchError` on non-2xx response.
+- Parses the JSON response body and returns it as a Hash.
+- Structured JSON logging with correlation ID.
+
+**Why separate from IngestClient:**
+1. `IngestClient` retries on 5xx (3 retries, exponential backoff). Combined with Solid Queue retries, this causes retry amplification (up to 15 HTTP requests per failure). `DispatchClient` avoids this.
+2. No HMAC signature required.
+3. Different timeout profile (30s read vs 10s read).
+4. Different response parsing (`{"external_id": ...}` vs `{"status": "ok"}`).
 
 ---
 
@@ -286,9 +289,8 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 3. `FaleComChannel::Payload.validate!` rejects a hash missing `channel.type` with a clear error message.
 4. `FaleComChannel::QueueAdapter.build(queue_name: "test")` returns an SQS adapter initialized correctly.
 5. `QueueAdapter#consume` yields the correct payload and `ack`/`nack` handle messages correctly (can mock `aws-sdk-sqs` for tests).
-6. `FaleComChannel::IngestClient` signs requests with correct HMAC headers (unit test with Faraday test adapter).
-7. `FaleComChannel::SendServer` rejects requests with invalid HMAC (returns 401).
-8. `FaleComChannel::Hmac.verify!` rejects timestamps older than 5 minutes.
+6. `FaleComChannel::IngestClient` makes requests to Rails successfully (unit test with Faraday test adapter).
+7. `FaleComChannel::SendServer` accepts valid payloads and dispatches to handler.
 9. `bundle exec standardrb` passes in the gem directory.
 
 ---

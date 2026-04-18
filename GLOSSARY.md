@@ -10,7 +10,6 @@ For architectural context behind these terms, see [`ARCHITECTURE.md`](./ARCHITEC
 
 | Term | Definition |
 |---|---|
-| **Account** | Tenant boundary. Everything in the system belongs to an account |
 | **User** | Internal person using the platform — agent, admin, supervisor. Authenticates into the dashboard |
 | **Role** | Permission set assigned to a user: `admin`, `supervisor`, `agent` |
 | **Team** | A group of users. Conversations can be routed to teams |
@@ -43,7 +42,7 @@ For architectural context behind these terms, see [`ARCHITECTURE.md`](./ARCHITEC
 | **Channel Container** | A tiny Roda app — one per channel type — that pulls from its SQS queue, validates the provider signature, parses the provider payload, normalizes to the Common Ingestion Payload, and POSTs to the Rails API. Also exposes a `/send` endpoint for outbound |
 | **Channel Registration** | A row in the `channels` table. The API refuses to ingest messages for channels that aren't registered and active |
 | **Common Ingestion Payload** | The single normalized format the API accepts at `/internal/ingest`. Required common fields (`channel`, `contact`, `message`) + flexible `metadata` for provider-specific extras + `raw` for audit |
-| **`falecom_channel`** | Internal gem shared by every channel container. Provides the SQS consumer loop, Payload schema, HMAC ingest client, and Roda base server for `/send` |
+| **`falecom_channel`** | Internal gem shared by every channel container. Provides the SQS consumer loop, Payload schema, ingest client, and Roda base server for `/send` |
 
 ## Flow Engine
 
@@ -71,7 +70,7 @@ For architectural context behind these terms, see [`ARCHITECTURE.md`](./ARCHITEC
 | Term | Definition |
 |---|---|
 | **Devcontainer** | The workspace definition at `.devcontainer/devcontainer.json`. Opened by VS Code / Cursor with the Dev Containers extension to attach into a pre-configured Ruby + tooling environment. Uses `infra/docker-compose.yml` as its service stack |
-| **`bin/setup`** | Idempotent setup script at repo root. Runs `bundle install`, Vite asset install, `rails db:prepare`, and seeds dev accounts/channels. Called by `postCreateCommand` in the devcontainer; also the entry point for contributors not using the devcontainer |
+| **`bin/setup`** | Idempotent setup script at repo root. Runs `bundle install`, Vite asset install, `rails db:prepare`, and seeds dev channels. Called by `postCreateCommand` in the devcontainer; also the entry point for contributors not using the devcontainer |
 | **Workspace service** | The `workspace` service in `docker-compose.yml`. Holds all developer tooling (Ruby, standardrb, node, aws-cli, terraform). The devcontainer attaches here. Does not exist in production. Unrelated to the UI-level "Workspace" in the Domain section above |
 
 ## Events
@@ -80,7 +79,6 @@ Events are module-prefixed, past-tense, written in snake_case. Every state-chang
 
 Full catalogue:
 
-- **accounts:** `created`, `updated`
 - **users:** `created`, `invited`, `activated`, `deactivated`, `signed_in`, `signed_out`, `role_changed`, `availability_changed`
 - **teams:** `created`, `updated`, `deleted`
 - **team_members:** `added`, `removed`
@@ -88,8 +86,8 @@ Full catalogue:
 - **channel_teams:** `added`, `removed`
 - **contacts:** `created`, `updated`, `merged`, `deleted`
 - **contact_channels:** `created`, `deleted`
-- **conversations:** `created`, `status_changed`, `assigned`, `unassigned`, `transferred`, `resolved`, `reopened`
-- **messages:** `inbound`, `outbound`, `delivered`, `read`, `failed`
+- **conversations:** `created`, `status_changed`, `assigned`, `unassigned`, `transferred`, `resolved` (`reopened` deferred until lock_to_single_conversation feature)
+- **messages:** `inbound`, `outbound`, `sent`, `delivered`, `read`, `failed`
 - **flows:** `created`, `updated`, `activated`, `deactivated`, `deleted`, `started`, `advanced`, `handoff`, `completed`, `abandoned`
 - **automation_rules:** `created`, `updated`, `deleted`, `applied`
 
