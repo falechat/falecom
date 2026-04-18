@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: standardrb (root)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 4.0.2
+          bundler-cache: true
+      - run: bundle exec standardrb
+
+  app-tests:
+    name: packages/app — rspec
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: falecom
+          POSTGRES_PASSWORD: falecom
+          POSTGRES_DB: falecom_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U falecom"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      RAILS_ENV: test
+      DATABASE_HOST: localhost
+      DATABASE_USER: falecom
+      DATABASE_PASSWORD: falecom
+    defaults:
+      run:
+        working-directory: packages/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 4.0.2
+          bundler-cache: true
+          working-directory: packages/app
+      - run: bin/rails db:prepare
+      - run: bundle exec rspec

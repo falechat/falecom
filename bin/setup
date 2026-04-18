@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# FaleCom repo bootstrap.
+#
+# Idempotent: safe to run repeatedly. Runs inside the workspace devcontainer
+# (invoked by devcontainer.json's postCreateCommand). Also safe to run on a
+# host that has Ruby 4.0.2 available via mise/asdf.
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+echo "==> Installing root dev tooling (standardrb)"
+bundle install
+
+echo "==> Installing app gems"
+(cd packages/app && bundle install)
+
+echo "==> Preparing database (create if missing, migrate, seed)"
+(cd packages/app && bin/rails db:prepare)
+
+echo "==> Seeding dev user (idempotent)"
+(cd packages/app && bin/rails runner '
+  email = "dev@falecom.test"
+  unless User.exists?(email_address: email)
+    User.create!(
+      email_address: email,
+      password: "falecom-dev-password",
+      password_confirmation: "falecom-dev-password"
+    )
+    puts "Seeded dev user #{email} (password: falecom-dev-password)"
+  else
+    puts "Dev user #{email} already present"
+  end
+')
+
+echo "==> Done. Next: cd packages/app && bin/dev (available after Phase 1B)."
