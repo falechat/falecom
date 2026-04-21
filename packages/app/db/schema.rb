@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_165513) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_165815) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -100,6 +100,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165513) do
     t.string "name"
     t.string "phone_number"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "conversations", force: :cascade do |t|
+    t.jsonb "additional_attributes", default: {}, null: false
+    t.bigint "assignee_id"
+    t.bigint "channel_id", null: false
+    t.bigint "contact_channel_id", null: false
+    t.bigint "contact_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "display_id", null: false
+    t.datetime "last_activity_at"
+    t.string "status", default: "bot", null: false
+    t.bigint "team_id"
+    t.datetime "updated_at", null: false
+    t.index ["assignee_id", "status"], name: "index_conversations_on_assignee_id_and_status"
+    t.index ["assignee_id"], name: "index_conversations_on_assignee_id"
+    t.index ["channel_id", "status"], name: "index_conversations_on_channel_id_and_status"
+    t.index ["channel_id"], name: "index_conversations_on_channel_id"
+    t.index ["contact_channel_id"], name: "index_conversations_on_contact_channel_id"
+    t.index ["contact_channel_id"], name: "index_conversations_open_per_contact_channel", unique: true, where: "((status)::text <> 'resolved'::text)"
+    t.index ["contact_id"], name: "index_conversations_on_contact_id"
+    t.index ["display_id"], name: "index_conversations_on_display_id", unique: true
+    t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: {last_activity_at: :desc}
+    t.index ["team_id", "status"], name: "index_conversations_on_team_id_and_status"
+    t.index ["team_id"], name: "index_conversations_on_team_id"
+    t.check_constraint "status::text = ANY (ARRAY['bot'::character varying, 'queued'::character varying, 'assigned'::character varying, 'resolved'::character varying]::text[])", name: "conversations_status_check"
   end
 
   create_table "events", force: :cascade do |t|
@@ -302,6 +328,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165513) do
   add_foreign_key "channel_teams", "teams"
   add_foreign_key "contact_channels", "channels"
   add_foreign_key "contact_channels", "contacts"
+  add_foreign_key "conversations", "channels"
+  add_foreign_key "conversations", "contact_channels"
+  add_foreign_key "conversations", "contacts"
+  add_foreign_key "conversations", "teams"
+  add_foreign_key "conversations", "users", column: "assignee_id"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
