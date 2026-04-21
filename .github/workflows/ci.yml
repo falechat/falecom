@@ -61,3 +61,19 @@ jobs:
       - run: bundle exec vite build
       - run: bin/rails db:prepare
       - run: bundle exec rspec
+
+  falecom-channel-tests:
+    name: packages/falecom_channel — rspec
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/falecom_channel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 4.0.2
+          bundler-cache: true
+          working-directory: packages/falecom_channel
+      - run: bundle exec standardrb
+      - run: bundle exec rspec

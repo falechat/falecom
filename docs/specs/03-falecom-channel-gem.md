@@ -307,8 +307,8 @@ No contradictions with the architecture. This spec implements `ARCHITECTURE.md �
 ## 6. Risks
 
 - **dry-struct / dry-validation learning curve** — these gems have a specific DSL. If the team is unfamiliar, there's a ramp-up cost. Mitigation: the schema is defined once and rarely changes; the DSL is contained to one file.
-- **Local adapter reliability** — `SELECT FOR UPDATE SKIP LOCKED` is the right pattern, but it needs careful testing under concurrent consumers. Mitigation: write a concurrent consumer test with multiple threads.
-- **Gem dependency weight** — adding `dry-struct`, `dry-validation`, `faraday`, `aws-sdk-sqs`, and `pg` to every channel container increases image size. Mitigation: these are all well-maintained, small gems. The alternative (hand-rolling validation) is worse.
+- **LocalStack drift from real SQS** — LocalStack is not 100% feature-parity with AWS. Mitigation: every gem spec stubs `aws-sdk-sqs` rather than hitting LocalStack; LocalStack is only used for local end-to-end dev runs (Spec 04+). Production uses real SQS.
+- **Gem dependency weight** — adding `dry-struct`, `dry-validation`, `faraday`, and `aws-sdk-sqs` to every channel container increases image size. Mitigation: these are all well-maintained, small gems. The alternative (hand-rolling validation) is worse.
 
 ---
 
