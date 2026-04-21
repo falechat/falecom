@@ -52,4 +52,11 @@ Rails.application.configure do
   config.action_controller.raise_on_missing_callback_actions = true
 
   config.active_job.queue_adapter = :test
+
+  # Deterministic Active Record Encryption keys for the test suite.
+  # Not secret — the test database is wiped between runs. Production and staging
+  # read real keys from encrypted credentials (see config/credentials.yml.enc).
+  config.active_record.encryption.primary_key = "test_primary_key_32chars_________"
+  config.active_record.encryption.deterministic_key = "test_deterministic_key_32chars__"
+  config.active_record.encryption.key_derivation_salt = "test_key_derivation_salt_32chars"
 end

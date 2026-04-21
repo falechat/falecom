@@ -5,6 +5,8 @@ require "rails_helper"
 RSpec.describe "Dashboard", type: :request do
   let!(:user) do
     User.create!(
+      name: "Dashboard Spec User",
+      role: "admin",
       email_address: "dashboard-spec@falecom.test",
       password: "spec-password-123",
       password_confirmation: "spec-password-123"

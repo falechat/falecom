@@ -48,9 +48,30 @@ Plans must include, at minimum:
 5. **Order of operations** — which test first, which file first, what should be green before what. TDD is not optional.
 6. **What could go wrong** — one paragraph. What's the most likely way this breaks? What's the least likely way?
 
-Plans live in `docs/plans/YYYY-MM-DD-short-name.md` or the PR body. You can use a `PROGRESS.md` file at the repo root to track in-flight work across sessions.
+Plans live in `docs/plans/NN-YYYY-MM-DD-short-name.md` or the PR body.
 
 You cannot move to BUILD until the plan is reviewed. For small changes, review can be yourself reading your own plan after a short break. For anything larger, get a human.
+
+### TRACKING (`docs/PROGRESS.md`)
+
+`docs/PROGRESS.md` is the single live index of every spec and every plan and its current state. It is not optional — without it, in-flight work is invisible between sessions and specs/plans get duplicated or forgotten.
+
+Update `docs/PROGRESS.md` at every phase boundary. Each entry carries a status from the set below; transitioning the entry is part of the phase, not a follow-up task:
+
+- **Draft** — spec/plan file exists, no human approval yet
+- **Approved** — approved by a human, ready for the next phase
+- **Planned** — (spec-only) at least one plan has been written against this spec
+- **In Progress** — build underway under at least one plan
+- **Shipped** — merged to `main` (for a spec: all of its plans shipped)
+
+Concrete update points:
+
+- **DEFINE** — new spec file committed → add a row to the Specs table with status **Draft**. Spec approved by a human → move to **Approved**.
+- **PLAN** — new plan file committed → add a row to the Plans table with status **Draft**, and flip the parent spec to **Planned**. Plan approved → **Approved**.
+- **BUILD** — first commit of implementation work → plan status **In Progress**; parent spec **In Progress**.
+- **SHIP** — PR merged to `main` → plan status **Shipped**. When every plan under a spec is **Shipped**, the spec itself becomes **Shipped**.
+
+Each row links to the spec/plan file and, once shipped, to the merged PR. One line per entry; keep it short — this file is an index, not documentation.
 
 ### BUILD
 

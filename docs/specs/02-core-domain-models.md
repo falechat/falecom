@@ -3,7 +3,7 @@
 > **Phase:** 2 (Core domain) — first half
 > **Execution Order:** 2 of 7 — after Spec 1 *(can run in parallel with Spec 3)*
 > **Date:** 2026-04-17
-> **Status:** Draft — awaiting approval
+> **Status:** Approved (2026-04-21) — see [`docs/PROGRESS.md`](../PROGRESS.md) for the authoritative status of every spec
 > **Depends on:** [Spec 1: Monorepo Foundation](./01-monorepo-foundation.md)
 
 ---
@@ -25,29 +25,29 @@ Generated via `bin/rails generate migration` and applied in the order documented
 **Migration order:**
 
 
-2. **`ExtendUsers`** — The `users` table already exists from the Rails 8 auth generator (Spec 1). This migration **adds columns**: `name` (string, NOT NULL), `role` (string, NOT NULL, check constraint: `admin|supervisor|agent`), `availability` (string, default `offline`, check constraint: `online|busy|offline`).
+1. **`ExtendUsers`** — The `users` table already exists from the Rails 8 auth generator (Spec 1). This migration **adds columns**: `name` (string, NOT NULL), `role` (string, NOT NULL, check constraint: `admin|supervisor|agent`), `availability` (string, default `offline`, check constraint: `online|busy|offline`).
 
-3. **`CreateTeams`** — `name` (string, NOT NULL), timestamps.
+2. **`CreateTeams`** — `name` (string, NOT NULL), timestamps.
 
-4. **`CreateTeamMembers`** — `team_id` (references, NOT NULL, FK), `user_id` (references, NOT NULL, FK), timestamps. Unique index on `(team_id, user_id)`.
+3. **`CreateTeamMembers`** — `team_id` (references, NOT NULL, FK), `user_id` (references, NOT NULL, FK), timestamps. Unique index on `(team_id, user_id)`.
 
-5. **`CreateChannels`** — `channel_type` (string, NOT NULL, check constraint: `whatsapp_cloud|zapi|evolution|instagram|telegram`), `identifier` (string, NOT NULL), `name` (string, NOT NULL), `active` (boolean, NOT NULL, default true), `config` (jsonb, NOT NULL, default `{}`), `credentials` (jsonb, NOT NULL, default `{}`), `auto_assign` (boolean, NOT NULL, default false), `auto_assign_config` (jsonb, NOT NULL, default `{}`), `greeting_enabled` (boolean, NOT NULL, default false), `greeting_message` (text), `active_flow_id` (bigint, nullable), timestamps. Unique index on `(channel_type, identifier)`. Index on `(active)`. **Note: The foreign key constraint for `active_flow_id` is deferred to the Flow Engine spec to avoid circular FK dependencies.**
+4. **`CreateChannels`** — `channel_type` (string, NOT NULL, check constraint: `whatsapp_cloud|zapi|evolution|instagram|telegram`), `identifier` (string, NOT NULL), `name` (string, NOT NULL), `active` (boolean, NOT NULL, default true), `config` (jsonb, NOT NULL, default `{}`), `credentials` (jsonb, NOT NULL, default `{}`), `auto_assign` (boolean, NOT NULL, default false), `auto_assign_config` (jsonb, NOT NULL, default `{}`), `greeting_enabled` (boolean, NOT NULL, default false), `greeting_message` (text), `active_flow_id` (bigint, nullable), timestamps. Unique index on `(channel_type, identifier)`. Index on `(active)`. **Note: The foreign key constraint for `active_flow_id` is deferred to the Flow Engine spec to avoid circular FK dependencies.**
 
-6. **`CreateChannelTeams`** — `channel_id` (references, NOT NULL, FK), `team_id` (references, NOT NULL, FK), timestamps. Unique index on `(channel_id, team_id)`.
+5. **`CreateChannelTeams`** — `channel_id` (references, NOT NULL, FK), `team_id` (references, NOT NULL, FK), timestamps. Unique index on `(channel_id, team_id)`.
 
-7. **`CreateContacts`** — `name` (string), `email` (string), `phone_number` (string), `identifier` (string), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps.
+6. **`CreateContacts`** — `name` (string), `email` (string), `phone_number` (string), `identifier` (string), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps.
 
-8. **`CreateContactChannels`** — `contact_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `source_id` (string, NOT NULL), timestamps. Unique index on `(channel_id, source_id)`.
+7. **`CreateContactChannels`** — `contact_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `source_id` (string, NOT NULL), timestamps. Unique index on `(channel_id, source_id)`.
 
-9. **`CreateConversations`** — `channel_id` (references, NOT NULL, FK), `contact_id` (references, NOT NULL, FK), `contact_channel_id` (references, NOT NULL, FK), `status` (string, NOT NULL, default `bot`, check constraint: `bot|queued|assigned|resolved`), `assignee_id` (references, nullable, FK to users), `team_id` (references, nullable, FK), `display_id` (integer, NOT NULL), `last_activity_at` (datetime), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps. Indexes: `(status, last_activity_at DESC)`, `(channel_id, status)`, `(assignee_id, status)`, `(team_id, status)`, unique `(display_id)`, partial unique `(contact_channel_id) WHERE status != 'resolved'`.
+8. **`CreateConversations`** — `channel_id` (references, NOT NULL, FK), `contact_id` (references, NOT NULL, FK), `contact_channel_id` (references, NOT NULL, FK), `status` (string, NOT NULL, default `bot`, check constraint: `bot|queued|assigned|resolved`), `assignee_id` (references, nullable, FK to users), `team_id` (references, nullable, FK), `display_id` (integer, NOT NULL), `last_activity_at` (datetime), `additional_attributes` (jsonb, NOT NULL, default `{}`), timestamps. Indexes: `(status, last_activity_at DESC)`, `(channel_id, status)`, `(assignee_id, status)`, `(team_id, status)`, unique `(display_id)`, partial unique `(contact_channel_id) WHERE status != 'resolved'`.
 
-10. **`CreateMessages`** — `conversation_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `direction` (string, NOT NULL, check constraint: `inbound|outbound`), `content` (text), `content_type` (string, NOT NULL, default `text`, check constraint: `text|image|audio|video|document|location|contact_card|input_select|button_reply|template`), `status` (string, NOT NULL, default `received`, check constraint: `received|pending|sent|delivered|read|failed`), `external_id` (string), `sender_type` (string), `sender_id` (bigint), `reply_to_external_id` (string), `error` (text), `metadata` (jsonb, NOT NULL, default `{}`), `raw` (jsonb), `sent_at` (datetime), timestamps. Indexes: `(conversation_id, created_at)`, partial unique `(channel_id, external_id) WHERE external_id IS NOT NULL`, `(sender_type, sender_id)`.
+9. **`CreateMessages`** — `conversation_id` (references, NOT NULL, FK), `channel_id` (references, NOT NULL, FK), `direction` (string, NOT NULL, check constraint: `inbound|outbound`), `content` (text), `content_type` (string, NOT NULL, default `text`, check constraint: `text|image|audio|video|document|location|contact_card|input_select|button_reply|template`), `status` (string, NOT NULL, default `received`, check constraint: `received|pending|sent|delivered|read|failed`), `external_id` (string), `sender_type` (string), `sender_id` (bigint), `reply_to_external_id` (string), `error` (text), `metadata` (jsonb, NOT NULL, default `{}`), `raw` (jsonb), `sent_at` (datetime), timestamps. Indexes: `(conversation_id, created_at)`, partial unique `(channel_id, external_id) WHERE external_id IS NOT NULL`, `(sender_type, sender_id)`.
 
-11. **`CreateAutomationRules`** — `event_name` (string, NOT NULL), `conditions` (jsonb, NOT NULL, default `[]`), `actions` (jsonb, NOT NULL, default `[]`), `active` (boolean, NOT NULL, default true), timestamps. Index on `(event_name, active)`.
+10. **`CreateAutomationRules`** — `event_name` (string, NOT NULL), `conditions` (jsonb, NOT NULL, default `[]`), `actions` (jsonb, NOT NULL, default `[]`), `active` (boolean, NOT NULL, default true), timestamps. Index on `(event_name, active)`.
 
-12. **`CreateEvents`** — `name` (string, NOT NULL), `actor_type` (string), `actor_id` (bigint), `subject_type` (string, NOT NULL), `subject_id` (bigint, NOT NULL), `payload` (jsonb, NOT NULL, default `{}`), `created_at` (datetime, NOT NULL). **No `updated_at`** — events are immutable. Indexes: `(name, created_at DESC)`, `(subject_type, subject_id, created_at DESC)`, `(actor_type, actor_id, created_at DESC)`, `(created_at DESC)`.
+11. **`CreateEvents`** — `name` (string, NOT NULL), `actor_type` (string), `actor_id` (bigint), `subject_type` (string, NOT NULL), `subject_id` (bigint, NOT NULL), `payload` (jsonb, NOT NULL, default `{}`), `created_at` (datetime, NOT NULL). **No `updated_at`** — events are immutable. Indexes: `(name, created_at DESC)`, `(subject_type, subject_id, created_at DESC)`, `(actor_type, actor_id, created_at DESC)`, `(created_at DESC)`.
 
-13. **Active Storage install** — `bin/rails active_storage:install`.
+12. **Active Storage install** — `bin/rails active_storage:install`.
 
 > **Note:** Flows, FlowNodes, and ConversationFlows migrations are **deferred to the Flow Engine spec (Phase 6)**. The foreign key for `channels.active_flow_id` is also deferred. This keeps this spec focused on the core domain that all other specs depend on.
 

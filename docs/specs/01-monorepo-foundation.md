@@ -3,7 +3,7 @@
 > **Phase:** 1 (Foundation)
 > **Execution Order:** 1 of 7 — execute first, no dependencies
 > **Date:** 2026-04-17
-> **Status:** Draft — awaiting approval
+> **Status:** Shipped (2026-04-18) — see [`docs/PROGRESS.md`](../PROGRESS.md) for the authoritative status of every spec
 
 ---
 
