@@ -5,6 +5,8 @@ require "rails_helper"
 RSpec.describe "Sessions", type: :request do
   let!(:user) do
     User.create!(
+      name: "Sessions Spec User",
+      role: "agent",
       email_address: "spec-user@falecom.test",
       password: "spec-password-123",
       password_confirmation: "spec-password-123"
