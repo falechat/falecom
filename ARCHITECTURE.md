@@ -313,7 +313,7 @@ This is the **single contract** between channel containers and Rails. Every chan
 
 | Field | Notes |
 |---|---|
-| `type` | `inbound_message`, `outbound_status_update`, or `outbound_echo` |
+| `type` | `inbound_message` or `outbound_status_update` |
 | `channel.type` | Must match a registered Channel type (`whatsapp_cloud`, `zapi`, `evolution`, `instagram`, `telegram`, ...) |
 | `channel.identifier` | Phone number, page ID, bot username — whatever uniquely identifies this channel instance |
 | `contact.source_id` | Provider-scoped unique ID for the contact (WhatsApp number, Instagram PSID, Telegram user ID) |
@@ -1049,27 +1049,22 @@ Devcontainer is the supported path. For contributors without devcontainer suppor
 
 ### Queue Adapter (inside `falecom_channel` gem)
 
-Part of the shared gem. Used by channel containers to pull messages, and by the `dev-webhook` helper to enqueue. In production, AWS API Gateway writes directly to SQS, so nothing "enqueues" in our own code — only consumers run.
+Part of the shared gem. Used by channel containers to pull messages, and by the `dev-webhook` helper to enqueue. In production, AWS API Gateway writes directly to SQS, so nothing "enqueues" in our own application code — only consumers run.
 
 ```ruby
 module FaleComChannel
-  class QueueAdapter
-    def self.build(backend:, queue_name:)
+  module QueueAdapter
+    def self.build(backend: :sqs, **opts)
       case backend
-      when "sqs"   then SqsAdapter.new(queue_name)
-      when "local" then LocalAdapter.new(queue_name)
+      when :sqs then SqsAdapter.new(**opts)
+      else raise ArgumentError, "Unknown queue backend: #{backend.inspect}"
       end
     end
-
-    def enqueue(payload); end
-    def consume(&handler); end
-    def ack(message_id); end
-    def nack(message_id); end
   end
 end
 ```
 
-The `local` adapter uses Postgres (via a simple `inbound_queue` table) for dev, so you don't need any infra beyond Postgres. SQS for prod.
+Every adapter implements `consume/ack/nack/enqueue`. `QueueAdapter` is kept as an abstract factory so a future backend can be added without touching consumer code, but SQS is the **only** shipped implementation. Dev parity with prod is achieved via **LocalStack** (added to `infra/docker-compose.yml` alongside the first channel container in Spec 04), configured via `AWS_ENDPOINT_URL_SQS=http://localstack:4566`. No Postgres-backed local adapter exists — development and production both speak SQS.
 
 ---
 
