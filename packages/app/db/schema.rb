@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_165359) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_165513) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,6 +79,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165359) do
     t.index ["active"], name: "index_channels_on_active"
     t.index ["channel_type", "identifier"], name: "index_channels_on_channel_type_and_identifier", unique: true
     t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying::text, 'zapi'::character varying::text, 'evolution'::character varying::text, 'instagram'::character varying::text, 'telegram'::character varying::text])", name: "channels_channel_type_check"
+  end
+
+  create_table "contact_channels", force: :cascade do |t|
+    t.bigint "channel_id", null: false
+    t.bigint "contact_id", null: false
+    t.datetime "created_at", null: false
+    t.string "source_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_id", "source_id"], name: "index_contact_channels_on_channel_id_and_source_id", unique: true
+    t.index ["channel_id"], name: "index_contact_channels_on_channel_id"
+    t.index ["contact_id"], name: "index_contact_channels_on_contact_id"
   end
 
   create_table "contacts", force: :cascade do |t|
@@ -289,6 +300,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165359) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "channel_teams", "channels"
   add_foreign_key "channel_teams", "teams"
+  add_foreign_key "contact_channels", "channels"
+  add_foreign_key "contact_channels", "contacts"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
