@@ -120,9 +120,12 @@ RSpec.describe FaleComChannel::Consumer do
 
   describe "#ingest_client" do
     it "#ingest_client memoizes a single IngestClient instance across calls" do
-      stub_const("FaleComChannel::IngestClient", Class.new)
       fake_client = double("IngestClient")
       allow(FaleComChannel::IngestClient).to receive(:new).and_return(fake_client)
+      stub_const("ENV", ENV.to_h.merge(
+        "FALECOM_API_URL" => "http://rails.test",
+        "FALECOM_INGEST_HMAC_SECRET" => "secret"
+      ))
 
       container = TestContainer.new
       first = container.ingest_client

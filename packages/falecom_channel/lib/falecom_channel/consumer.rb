@@ -95,13 +95,16 @@ module FaleComChannel
       raise NotImplementedError, "#{self.class.name}#handle is not implemented"
     end
 
-    # Returns (and memoizes) the ingest client.
-    # FaleComChannel::IngestClient is implemented by Card 2B and loaded by
-    # lib/falecom_channel.rb before any container starts in production.
+    # Returns (and memoizes) the ingest client. Defaults to an IngestClient
+    # built from ENV vars; channel containers override this method if they
+    # need to inject a custom client or pass additional options.
     #
     # @return [FaleComChannel::IngestClient]
     def ingest_client
-      @ingest_client ||= FaleComChannel::IngestClient.new
+      @ingest_client ||= FaleComChannel::IngestClient.new(
+        api_url: ENV.fetch("FALECOM_API_URL"),
+        secret: ENV.fetch("FALECOM_INGEST_HMAC_SECRET")
+      )
     end
 
     protected :build_adapter
