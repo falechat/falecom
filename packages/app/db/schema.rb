@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_165815) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,6 +140,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165815) do
     t.index ["created_at"], name: "index_events_on_created_at", order: :desc
     t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: {created_at: :desc}
     t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: {created_at: :desc}
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.bigint "channel_id", null: false
+    t.text "content"
+    t.string "content_type", default: "text", null: false
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.string "direction", null: false
+    t.text "error"
+    t.string "external_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.jsonb "raw"
+    t.string "reply_to_external_id"
+    t.bigint "sender_id"
+    t.string "sender_type"
+    t.datetime "sent_at"
+    t.string "status", default: "received", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_id", "external_id"], name: "index_messages_on_channel_id_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["channel_id"], name: "index_messages_on_channel_id"
+    t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
+    t.index ["conversation_id"], name: "index_messages_on_conversation_id"
+    t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
+    t.check_constraint "content_type::text = ANY (ARRAY['text'::character varying, 'image'::character varying, 'audio'::character varying, 'video'::character varying, 'document'::character varying, 'location'::character varying, 'contact_card'::character varying, 'input_select'::character varying, 'button_reply'::character varying, 'template'::character varying]::text[])", name: "messages_content_type_check"
+    t.check_constraint "direction::text = ANY (ARRAY['inbound'::character varying, 'outbound'::character varying]::text[])", name: "messages_direction_check"
+    t.check_constraint "status::text = ANY (ARRAY['received'::character varying, 'pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'read'::character varying, 'failed'::character varying]::text[])", name: "messages_status_check"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -333,6 +360,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165815) do
   add_foreign_key "conversations", "contacts"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users", column: "assignee_id"
+  add_foreign_key "messages", "channels"
+  add_foreign_key "messages", "conversations"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
