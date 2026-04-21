@@ -3,6 +3,15 @@
 # Running `bin/rails db:seed` twice must produce no duplicates, no errors,
 # and the exact same DB state.
 
+# Skip seeding in test: CI runs `db:prepare` which invokes this file, and seed
+# fixtures (e.g. Channel identifier "5511999999999") collide with hardcoded
+# values in model specs. The test DB must start empty for transactional
+# fixtures to work correctly.
+if Rails.env.test?
+  puts "== Skipping seeds in test environment =="
+  return
+end
+
 puts "== Seeding users =="
 
 admin = User.find_or_create_by!(email_address: "admin@falecom.dev") do |u|
