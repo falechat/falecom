@@ -1,10 +1,11 @@
+require_relative "errors"
 require_relative "payload/types"
 require_relative "payload/inbound_message"
 require_relative "payload/outbound_status_update"
 require_relative "payload/outbound_message"
 
 module FaleComChannel
-  class InvalidPayloadError < StandardError; end
+  class InvalidPayloadError < Error; end
 
   module Payload
     SCHEMA_MAP = {
