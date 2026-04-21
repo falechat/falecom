@@ -3,7 +3,7 @@
 > **Phase:** 2 (Core domain) — first half
 > **Execution Order:** 2 of 7 — after Spec 1 *(can run in parallel with Spec 3)*
 > **Date:** 2026-04-17
-> **Status:** Draft — awaiting approval
+> **Status:** Approved (2026-04-21) — see [`docs/PROGRESS.md`](../PROGRESS.md) for the authoritative status of every spec
 > **Depends on:** [Spec 1: Monorepo Foundation](./01-monorepo-foundation.md)
 
 ---
