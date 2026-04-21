@@ -30,7 +30,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 |-----|------------------------------------------------------------------------------------------|------|----------|-------------------------------------------------------------|------------|
 | 01a | [Phase 1A — Backend Scaffold](./plans/01-2026-04-18-phase-1a-backend-scaffold.md)        | 01   | Shipped  | [#1](https://github.com/falechat/falecom/pull/1) (e3bbac7)  | 2026-04-18 |
 | 01b | [Phase 1B — UI Foundation](./plans/01-2026-04-18-phase-1b-ui-foundation.md)              | 01   | Shipped  | [#2](https://github.com/falechat/falecom/pull/2) (50dd2d7)  | 2026-04-18 |
-| 02  | [Core Domain Models & Audit Logging](./plans/02-2026-04-21-core-domain-models.md)        | 02   | In Progress | —                                                         | —          |
+| 02  | [Core Domain Models & Audit Logging](./plans/02-2026-04-21-core-domain-models.md)        | 02   | In Progress | [#3](https://github.com/falechat/falecom/pull/3)            | —          |
 
 ## Recently shipped
 
