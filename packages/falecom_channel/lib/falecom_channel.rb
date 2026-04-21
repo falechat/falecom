@@ -7,6 +7,7 @@ require_relative "falecom_channel/queue_adapter"
 require_relative "falecom_channel/consumer"
 require_relative "falecom_channel/ingest_client"
 require_relative "falecom_channel/dispatch_client"
+require_relative "falecom_channel/send_server"
 
 module FaleComChannel
 end
