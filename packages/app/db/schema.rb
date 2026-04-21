@@ -125,7 +125,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: {last_activity_at: :desc}
     t.index ["team_id", "status"], name: "index_conversations_on_team_id_and_status"
     t.index ["team_id"], name: "index_conversations_on_team_id"
-    t.check_constraint "status::text = ANY (ARRAY['bot'::character varying, 'queued'::character varying, 'assigned'::character varying, 'resolved'::character varying]::text[])", name: "conversations_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['bot'::character varying::text, 'queued'::character varying::text, 'assigned'::character varying::text, 'resolved'::character varying::text])", name: "conversations_status_check"
   end
 
   create_table "events", force: :cascade do |t|
@@ -164,9 +164,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
-    t.check_constraint "content_type::text = ANY (ARRAY['text'::character varying, 'image'::character varying, 'audio'::character varying, 'video'::character varying, 'document'::character varying, 'location'::character varying, 'contact_card'::character varying, 'input_select'::character varying, 'button_reply'::character varying, 'template'::character varying]::text[])", name: "messages_content_type_check"
-    t.check_constraint "direction::text = ANY (ARRAY['inbound'::character varying, 'outbound'::character varying]::text[])", name: "messages_direction_check"
-    t.check_constraint "status::text = ANY (ARRAY['received'::character varying, 'pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'read'::character varying, 'failed'::character varying]::text[])", name: "messages_status_check"
+    t.check_constraint "content_type::text = ANY (ARRAY['text'::character varying::text, 'image'::character varying::text, 'audio'::character varying::text, 'video'::character varying::text, 'document'::character varying::text, 'location'::character varying::text, 'contact_card'::character varying::text, 'input_select'::character varying::text, 'button_reply'::character varying::text, 'template'::character varying::text])", name: "messages_content_type_check"
+    t.check_constraint "direction::text = ANY (ARRAY['inbound'::character varying::text, 'outbound'::character varying::text])", name: "messages_direction_check"
+    t.check_constraint "status::text = ANY (ARRAY['received'::character varying::text, 'pending'::character varying::text, 'sent'::character varying::text, 'delivered'::character varying::text, 'read'::character varying::text, 'failed'::character varying::text])", name: "messages_status_check"
   end
 
   create_table "sessions", force: :cascade do |t|
