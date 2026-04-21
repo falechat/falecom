@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_163339) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_164001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_163339) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "automation_rules", force: :cascade do |t|
+    t.jsonb "actions", default: [], null: false
+    t.boolean "active", default: true, null: false
+    t.jsonb "conditions", default: [], null: false
+    t.datetime "created_at", null: false
+    t.string "event_name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_name", "active"], name: "index_automation_rules_on_event_name_and_active"
+  end
+
+  create_table "contacts", force: :cascade do |t|
+    t.jsonb "additional_attributes", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "identifier"
+    t.string "name"
+    t.string "phone_number"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "events", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.string "actor_type"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "subject_id", null: false
+    t.string "subject_type", null: false
+    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: {created_at: :desc}
+    t.index ["created_at"], name: "index_events_on_created_at", order: :desc
+    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: {created_at: :desc}
+    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: {created_at: :desc}
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -191,6 +225,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_163339) do
     t.index ["expires_at"], name: "index_solid_queue_semaphores_on_expires_at"
     t.index ["key", "value"], name: "index_solid_queue_semaphores_on_key_and_value"
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
+  end
+
+  create_table "teams", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
