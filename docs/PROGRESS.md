@@ -17,7 +17,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | #  | Spec                                                                                    | Status   | Plans                  | Notes                                                                                           |
 |----|-----------------------------------------------------------------------------------------|----------|------------------------|-------------------------------------------------------------------------------------------------|
 | 01 | [Monorepo Foundation & Dev Environment](./specs/01-monorepo-foundation.md)              | Shipped  | 01a, 01b               | Foundation in place: Rails 8.1.3 at `packages/app`, Solid trio, RSpec, Vite + Tailwind 4 + JR.  |
-| 02 | [Core Domain Models & Audit Logging](./specs/02-core-domain-models.md)                  | Planned  | 02                     | Approved 2026-04-21; plan 02 written same day.                                                  |
+| 02 | [Core Domain Models & Audit Logging](./specs/02-core-domain-models.md)                  | In Progress | 02                  | Approved 2026-04-21; plan 02 written same day; implementation underway on branch `spec-02-core-domain-models`. |
 | 03 | [`falecom_channel` Gem](./specs/03-falecom-channel-gem.md)                              | Draft    | —                      | Can run in parallel with Spec 02 once both are approved.                                        |
 | 04 | [Ingestion Pipeline](./specs/04-ingestion-pipeline.md)                                  | Draft    | —                      | Depends on 02 + 03.                                                                             |
 | 05 | [Outbound Dispatch](./specs/05-outbound-dispatch.md)                                    | Draft    | —                      | Depends on 02 + 03.                                                                             |
@@ -30,7 +30,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 |-----|------------------------------------------------------------------------------------------|------|----------|-------------------------------------------------------------|------------|
 | 01a | [Phase 1A — Backend Scaffold](./plans/01-2026-04-18-phase-1a-backend-scaffold.md)        | 01   | Shipped  | [#1](https://github.com/falechat/falecom/pull/1) (e3bbac7)  | 2026-04-18 |
 | 01b | [Phase 1B — UI Foundation](./plans/01-2026-04-18-phase-1b-ui-foundation.md)              | 01   | Shipped  | [#2](https://github.com/falechat/falecom/pull/2) (50dd2d7)  | 2026-04-18 |
-| 02  | [Core Domain Models & Audit Logging](./plans/02-2026-04-21-core-domain-models.md)        | 02   | Approved | —                                                           | —          |
+| 02  | [Core Domain Models & Audit Logging](./plans/02-2026-04-21-core-domain-models.md)        | 02   | In Progress | —                                                         | —          |
 
 ## Recently shipped
 
@@ -38,5 +38,5 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 
 ## Up next
 
-- **Plan 02 — Core Domain Models & Audit Logging.** Approved 2026-04-21, ready for BUILD on branch `spec-02-core-domain-models`. Unblocks Specs 04, 05, 06, 07.
-- **Spec 03 — `falecom_channel` Gem.** Independent of Spec 02; can be approved and planned in parallel.
+- **Plan 02 — Core Domain Models & Audit Logging.** Implementation complete on branch `spec-02-core-domain-models`; all 99 specs green, seeds idempotent, migration round-trip verified. Awaiting PR open and code review before merge to `main`.
+- **Spec 03 — `falecom_channel` Gem.** Independent of Spec 02; can be approved and planned in parallel once Plan 02 is merged.
