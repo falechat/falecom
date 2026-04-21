@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_165359) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
     t.index ["event_name", "active"], name: "index_automation_rules_on_event_name_and_active"
   end
 
+  create_table "channel_teams", force: :cascade do |t|
+    t.bigint "channel_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_id", "team_id"], name: "index_channel_teams_on_channel_id_and_team_id", unique: true
+    t.index ["channel_id"], name: "index_channel_teams_on_channel_id"
+    t.index ["team_id"], name: "index_channel_teams_on_team_id"
+  end
+
   create_table "channels", force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.bigint "active_flow_id"
@@ -68,7 +78,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
     t.datetime "updated_at", null: false
     t.index ["active"], name: "index_channels_on_active"
     t.index ["channel_type", "identifier"], name: "index_channels_on_channel_type_and_identifier", unique: true
-    t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying, 'zapi'::character varying, 'evolution'::character varying, 'instagram'::character varying, 'telegram'::character varying]::text[])", name: "channels_channel_type_check"
+    t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying::text, 'zapi'::character varying::text, 'evolution'::character varying::text, 'instagram'::character varying::text, 'telegram'::character varying::text])", name: "channels_channel_type_check"
   end
 
   create_table "contacts", force: :cascade do |t|
@@ -89,10 +99,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
     t.jsonb "payload", default: {}, null: false
     t.bigint "subject_id", null: false
     t.string "subject_type", null: false
-    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: { created_at: :desc }
+    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: {created_at: :desc}
     t.index ["created_at"], name: "index_events_on_created_at", order: :desc
-    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: { created_at: :desc }
-    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: { created_at: :desc }
+    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: {created_at: :desc}
+    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: {created_at: :desc}
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -277,6 +287,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "channel_teams", "channels"
+  add_foreign_key "channel_teams", "teams"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
