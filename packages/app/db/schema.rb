@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_164258) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_165021) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,6 +50,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_164258) do
     t.string "event_name", null: false
     t.datetime "updated_at", null: false
     t.index ["event_name", "active"], name: "index_automation_rules_on_event_name_and_active"
+  end
+
+  create_table "channels", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.bigint "active_flow_id"
+    t.boolean "auto_assign", default: false, null: false
+    t.jsonb "auto_assign_config", default: {}, null: false
+    t.string "channel_type", null: false
+    t.jsonb "config", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.text "credentials", default: "{}", null: false
+    t.boolean "greeting_enabled", default: false, null: false
+    t.text "greeting_message"
+    t.string "identifier", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_channels_on_active"
+    t.index ["channel_type", "identifier"], name: "index_channels_on_channel_type_and_identifier", unique: true
+    t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying, 'zapi'::character varying, 'evolution'::character varying, 'instagram'::character varying, 'telegram'::character varying]::text[])", name: "channels_channel_type_check"
   end
 
   create_table "contacts", force: :cascade do |t|
