@@ -240,7 +240,7 @@ A.1. `ExtendUsers` migration (add `name`, `role`, `availability` + check constra
 
 A.2. `bin/rails active_storage:install && bin/rails db:migrate`. Commit `chore: install Active Storage`.
 
-A.3. **Human-gated:** run `bin/rails db:encryption:init`, add its output to `config/credentials.yml.enc`, commit the updated encrypted credentials file. This unblocks B.3.
+A.3. **Test-env unblock (no human needed for dev/CI):** configure `config/environments/test.rb` with static test-only encryption keys so `bin/rails db:encryption:init` is not a blocker. The keys are deterministic test fixtures, not secrets. **Prod/staging still need real keys in encrypted credentials before deploy** — tracked as a deploy-readiness item, not a blocker for this plan.
 
 ### Phase B — Standalone tables (parallel, one subagent per card)
 
