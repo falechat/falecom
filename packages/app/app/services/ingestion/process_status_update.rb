@@ -11,7 +11,7 @@ module Ingestion
 
     def self.call(channel, payload)
       external_id = payload.fetch("external_id")
-      message = Message.find_by(channel_id: channel.id, external_id: external_id)
+      message = channel.messages.find_by(external_id: external_id)
       return :retry unless message
 
       new_status = payload.fetch("status")

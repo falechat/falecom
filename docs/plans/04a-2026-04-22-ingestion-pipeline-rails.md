@@ -596,7 +596,7 @@ end
 ```
 docker exec falecom-workspace-1 bash -c "cd /workspaces/falecom/packages/app && unset DATABASE_URL && bundle exec rspec spec/services/contacts/resolve_spec.rb"
 ```
-Expected: 9 examples, 0 failures.
+Expected: 8 examples, 0 failures.
 
 - [ ] **Step 5: standardrb**
 
@@ -784,7 +784,7 @@ end
 ```
 docker exec falecom-workspace-1 bash -c "cd /workspaces/falecom/packages/app && unset DATABASE_URL && bundle exec rspec spec/services/conversations/resolve_or_create_spec.rb"
 ```
-Expected: 6 examples, 0 failures.
+Expected: 7 examples, 0 failures.
 
 - [ ] **Step 5: standardrb + commit**
 
@@ -1076,7 +1076,7 @@ RSpec.describe Ingestion::ProcessStatusUpdate do
       expect(message.reload.status).to eq("delivered")
     end
 
-    it "emits messages:#{status} on a real update" do
+    it "emits messages:delivered on a real update" do
       payload = PayloadFixtures.status_update("external_id" => "WAMID.ABC", "status" => "delivered")
       expect {
         described_class.call(channel, payload)
@@ -1502,7 +1502,7 @@ git commit -m "feat(app): add rake ingest:mock dev utility driving Ingestion::Pr
 ```
 docker exec falecom-workspace-1 bash -c "cd /workspaces/falecom/packages/app && unset DATABASE_URL && bundle exec rspec"
 ```
-Expected: all examples pass — pre-existing Spec 02 specs (99 examples) plus the new Plan 04a specs (~35 new examples = 7 + 9 + 6 + 5 + 6 + 7 + 2). Total ~134.
+Expected: all examples pass — pre-existing Spec 02 specs (99 examples) plus the new Plan 04a specs (~35 new examples = 7 + 9 + 6 + 5 + 6 + 7 + 2). Total ~141.
 
 - [ ] **Step 2: Run full gem suite**
 

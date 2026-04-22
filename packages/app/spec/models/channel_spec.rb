@@ -59,4 +59,13 @@ RSpec.describe Channel, type: :model do
       channel.update_column(:channel_type, "bogus_channel")
     }.to raise_error(ActiveRecord::StatementInvalid, /channels_channel_type_check/)
   end
+
+  describe "associations" do
+    it "has many messages" do
+      association = described_class.reflect_on_association(:messages)
+      expect(association).not_to be_nil
+      expect(association.macro).to eq(:has_many)
+      expect(association.options[:dependent]).to eq(:restrict_with_error)
+    end
+  end
 end
