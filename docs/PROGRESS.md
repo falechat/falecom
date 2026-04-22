@@ -33,6 +33,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 02  | [Core Domain Models & Audit Logging](./plans/02-2026-04-21-core-domain-models.md)        | 02   | Shipped  | [#3](https://github.com/falechat/falecom/pull/3) (7adbfde)  | 2026-04-21 |
 | 03  | [`falecom_channel` Gem](./plans/03-2026-04-21-falecom-channel-gem.md)                    | 03   | Shipped  | [#4](https://github.com/falechat/falecom/pull/4) (1e7532f)  | 2026-04-21 |
 | 04a | [Phase 4A — Ingestion Rails](./plans/04a-2026-04-22-ingestion-pipeline-rails.md) | 04   | In Progress | —                                                          | —          |
+| 04b | [Phase 4B — Ingestion Container + Infra](./plans/04b-2026-04-22-ingestion-pipeline-container.md) | 04   | In Progress | —   | —          |
 
 ## Recently shipped
 
