@@ -52,6 +52,8 @@ services:
     environment:
       SERVICES: sqs
       DEFAULT_REGION: us-east-1
+      LOCALSTACK_HOST: localstack
+      SQS_ENDPOINT_STRATEGY: off
     healthcheck:
       test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
       interval: 5s
