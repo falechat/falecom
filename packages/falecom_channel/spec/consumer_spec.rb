@@ -123,8 +123,7 @@ RSpec.describe FaleComChannel::Consumer do
       fake_client = double("IngestClient")
       allow(FaleComChannel::IngestClient).to receive(:new).and_return(fake_client)
       stub_const("ENV", ENV.to_h.merge(
-        "FALECOM_API_URL" => "http://rails.test",
-        "FALECOM_INGEST_HMAC_SECRET" => "secret"
+        "FALECOM_API_URL" => "http://rails.test"
       ))
 
       container = TestContainer.new

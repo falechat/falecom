@@ -185,15 +185,18 @@ class Assignments::Transfer
       status: to_user ? "assigned" : "queued"
     )
 
-    # Optional note → system message
+    # Optional note → system message (matches Spec 04 v2 Messages::Create kwargs).
+    # sender: nil tags it as a system-origin message; no provider dispatch (status
+    # "received", direction "outbound" and no external_id) — ProcessStatusUpdate and
+    # SendMessageJob both ignore it.
     if note.present?
       Messages::Create.call(
         conversation: conversation,
-        direction: "outbound",
-        content: note,
+        direction:    "outbound",
+        content:      note,
         content_type: "text",
-        sender_type: "System",
-        status: "received" # system messages are not sent to the provider
+        status:       "received",
+        sender:       nil
       )
     end
 
@@ -321,10 +324,6 @@ end
 > [!TIP]
 > Use Rails' `audio_tag` and `video_tag` helpers. For images, ensure proper `object-fit: cover` on thumbnails to maintain layout consistency.
 
-| Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
-
-| Event: `flows:handoff` | Centered pill: "Bot handed off to {team}" |
-
 ### 2.11 The Three-Pane Layout (Workspace)
 
 The main dashboard (`/dashboard`) uses a fixed-height, full-screen three-pane layout to minimize scrolling and keep context visible.
@@ -406,7 +405,7 @@ end
 - When a conversation is assigned → broadcast to `conversations:user:#{assignee_id}` (appears in "Mine").
 - When a conversation is transferred → broadcast remove to old assignee stream, broadcast append to new assignee stream.
 
-### 2.12 Tests
+### 2.15 Tests
 
 - [ ] **`ConversationPolicy` specs:**
   - Agent can view conversation on their channel, cannot view others.
@@ -488,7 +487,7 @@ This implements `ARCHITECTURE.md § Workspace`, `§ Conversation Transfer`, `§ 
 ## 6. Risks
 
 - **N+1 queries** — workspace views join across users → teams → channel_teams → channels → conversations. Mitigation: use `includes` / `joins` deliberately, test with `bullet` gem or query count assertions.
-- **Auto-assign race conditions** — two conversations arriving simultaneously could both be assigned to the same agent, exceeding capacity. Mitigation: use database advisory locks or `WITH LOCK` in the auto-assign query.
+- **Auto-assign race conditions** — two conversations arriving simultaneously could both be assigned to the same agent, exceeding capacity. Mitigation: wrap the eligible-agent selection + update in a single transaction with `pg_advisory_xact_lock(hashtext("auto_assign_team_#{team.id}"))` — same inline-pg-advisory pattern Spec 04 v2 uses for `display_id` generation. No gem dependency; lock auto-releases on commit.
 - **Solid Cable subscription count** — if an agent is on many teams with many channels, they subscribe to many streams. Mitigation: Solid Cable handles this fine for dozens of streams; revisit if agents have hundreds of channels.
 
 ---

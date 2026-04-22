@@ -6,7 +6,7 @@
 > **Status:** Draft — awaiting approval
 > **Depends on:**
 > - [Spec 2: Core Domain Models](./02-core-domain-models.md) (Message model exists)
-> - [Spec 3: falecom_channel Gem](./03-falecom-channel-gem.md) (SendServer, HMAC, Payload exist)
+> - [Spec 3: falecom_channel Gem](./03-falecom-channel-gem.md) (`SendServer` + `DispatchClient` with HMAC for `/send`, Payload schemas exist. `/internal/ingest` has no app-layer auth — see Spec 04 v2.)
 > - [Spec 4: Ingestion Pipeline](./04-ingestion-pipeline.md) (IngestController, WhatsApp container exist)
 
 ---
@@ -43,24 +43,24 @@ A Turbo Frame-based reply form at the bottom of the conversation detail view.
 
 ### 2.2 `Dispatch::Outbound` Service
 
-The single service for all outbound messages — used by agent replies, flow engine responses, system messages, and future API.
+The single service for all outbound messages — used by agent replies, flow engine responses, system messages, and future API. `Messages::Create` kwargs signature defined in Spec 04 v2 §2.6.
 
 ```ruby
 class Dispatch::Outbound
   def self.call(conversation:, content:, content_type: "text", attachments: [], metadata: {}, actor:, reply_to_external_id: nil)
     message = Messages::Create.call(
-      conversation: conversation,
-      direction: "outbound",
-      content: content,
-      content_type: content_type,
-      status: "pending",
-      sender: actor,
-      metadata: metadata,
+      conversation:         conversation,
+      direction:            "outbound",
+      content:              content,
+      content_type:         content_type,
+      status:               "pending",
+      sender:               actor,
+      metadata:              metadata,
       reply_to_external_id: reply_to_external_id
     )
 
-    # Broadcast immediately — agent sees their message right away
-    broadcast_message(message)
+    # Messages::Create already broadcasts via Turbo Stream + emits
+    # messages:outbound. Agent sees the message immediately.
 
     # CRITICAL: Enqueue AFTER the transaction commits.
     # If enqueued inside the transaction, Solid Queue workers may pick up the
@@ -101,7 +101,8 @@ class SendMessageJob < ApplicationJob
     payload = build_outbound_payload(message)
 
     response = FaleComChannel::DispatchClient.new(
-      container_url: container_url
+      container_url: container_url,
+      secret:        ENV.fetch("FALECOM_DISPATCH_HMAC_SECRET")
     ).send_message(payload)
 
     message.update!(
@@ -142,23 +143,26 @@ end
 **Outbound payload construction:**
 ```ruby
 def build_outbound_payload(message)
+  channel = message.channel
   {
     type: "outbound_message",
     channel: {
-      type: message.channel.channel_type,
-      identifier: message.channel.identifier
+      type:       channel.channel_type,
+      identifier: channel.identifier
     },
     contact: {
       source_id: message.conversation.contact_channel.source_id
     },
     message: {
-      internal_id: message.id,
-      content: message.content,
-      content_type: message.content_type,
-      attachments: [], # v1: text only
+      internal_id:          message.id,
+      content:              message.content,
+      content_type:         message.content_type,
+      attachments:          [], # v1: text only
       reply_to_external_id: message.reply_to_external_id
     },
-    metadata: message.metadata
+    metadata: message.metadata.merge(
+      "channel_credentials" => channel.credentials # decrypted here; container never touches DB
+    )
   }
 end
 ```
@@ -169,10 +173,13 @@ Extends the WhatsApp Cloud container (built in Spec 4) with the outbound path.
 
 ```ruby
 class WhatsappCloudSendServer < FaleComChannel::SendServer
+  dispatch_secret ENV.fetch("FALECOM_DISPATCH_HMAC_SECRET")
+
   def handle_send(payload)
+    credentials = payload.dig("metadata", "channel_credentials") || {}
     sender = Sender.new(
-      access_token: ENV.fetch("WHATSAPP_ACCESS_TOKEN"),
-      phone_number_id: resolve_phone_number_id(payload)
+      access_token:    credentials.fetch("access_token"),
+      phone_number_id: credentials.fetch("phone_number_id")
     )
     sender.send_message(payload)
   end
@@ -186,9 +193,10 @@ end
 - Returns `{ external_id: response["messages"][0]["id"] }`.
 - Handles Meta API errors (rate limit, invalid number, etc.) with structured error responses.
 
-**`phone_number_id` resolution:**
-- Channel credentials (stored encrypted in the `channels` table) include `phone_number_id`.
-- For v1, the container reads this from ENV (`WHATSAPP_PHONE_NUMBER_ID`). Future: passed in the `/send` payload metadata.
+**Credential resolution (`access_token` + `phone_number_id`):**
+- Stored in `channels.credentials` (encrypted, per Spec 02).
+- Rails injects them into the outbound payload under `metadata.channel_credentials` inside `SendMessageJob#build_outbound_payload` (see §2.3). Containers are stateless — they never read `channels` directly.
+- Decision consolidated with §7.3: `channel.credentials` is the single source of truth. `ENV["WHATSAPP_ACCESS_TOKEN"]` remains only as a dev fallback when `channels.credentials` is empty in seed data.
 
 ### 2.5 Delivery Status Updates — Closing the Loop
 
@@ -200,11 +208,11 @@ Provider → API Gateway → SQS → channel container (parses as outbound_statu
 → message.status updated → Turbo Stream broadcast → checkmarks update in dashboard
 ```
 
-This path already exists from Spec 4. This spec ensures:
+Both halves of this path already exist from Spec 4 v2 (parser + `ProcessStatusUpdate`). This spec only adds outbound-direction test coverage:
 
-- [ ] The WhatsApp Cloud container parser handles status webhook payloads (`entry[0].changes[0].value.statuses[0]`) and produces `outbound_status_update` common payloads.
-- [ ] The `Ingestion::ProcessStatusUpdate` service (from Spec 4) correctly updates statuses and broadcasts.
-- [ ] Status progression is enforced: `pending → sent → delivered → read`. A `delivered` status doesn't overwrite a `read` status. `failed` can arrive at any point.
+- [ ] Verify Spec 4 v2's WhatsApp Cloud parser correctly emits `outbound_status_update` payloads for `entry[0].changes[0].value.statuses[0]` webhook shapes.
+- [ ] Verify `Ingestion::ProcessStatusUpdate` updates a previously-outbound message's status correctly and broadcasts the change.
+- [ ] Status progression is enforced: `pending → sent → delivered → read`. A `delivered` status never overwrites a `read`. `failed` can arrive at any point and always wins.
 
 ### 2.6 Dashboard — Message Status Display
 
@@ -315,4 +323,4 @@ This implements `ARCHITECTURE.md § Outbound Message Flow` (steps 1–9) and `AR
 
 1. **Outbound queue priority** — Decided: **Same priority**. Both bot and agent messages share the same outbound queue for v1.
 2. **Message editing** — Decided: **No editing** in v1.
-3. **Phone number ID resolution** — Decided: Store in **`channel.credentials`**. This keeps sensitive provider IDs encrypted and avoids environment variable proliferation.
+3. **Provider credentials resolution** — Decided: Store in **`channel.credentials`** (encrypted JSONB, per Spec 02). Rails decrypts on each outbound dispatch and injects the relevant fields into `metadata.channel_credentials` inside the `/send` payload. Channel containers are stateless — they never read the DB. `ENV["WHATSAPP_ACCESS_TOKEN"]` remains only as a dev fallback for seed channels with empty credentials.

@@ -13,7 +13,7 @@ Path-dependency only. Never published to RubyGems.
 | `FaleComChannel::Payload` | Common Ingestion Payload schema (dry-struct + dry-validation). `validate!`, `valid?`, `parse`. Schemas: `InboundMessage`, `OutboundStatusUpdate`, `OutboundMessage` |
 | `FaleComChannel::QueueAdapter` | SQS wrapper. `consume/ack/nack/enqueue`. Abstract interface; only `SqsAdapter` ships today |
 | `FaleComChannel::Consumer` | Mixin for channel container classes. Worker threads, graceful SIGTERM/SIGINT shutdown, per-message correlation id |
-| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. Retries 5xx (3x, exponential backoff). HMAC-signed with `FALECOM_INGEST_HMAC_SECRET` |
+| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. Retries 5xx (3x, exponential backoff). Correlation-id propagation. No app-layer auth — security is ingress topology (operator must not expose `/internal/*` publicly) |
 | `FaleComChannel::DispatchClient` | Faraday client for `POST {container}/send`. No retries (Solid Queue retries). HMAC-signed with `FALECOM_DISPATCH_HMAC_SECRET`. 30s read timeout |
 | `FaleComChannel::SendServer` | Roda base for the `/send` endpoint. HMAC-verifies inbound, validates payload, dispatches to `#handle_send` |
 | `FaleComChannel::HmacSigner` | `sign` + `verify!` for the shared HMAC scheme (sha256, 5-minute tolerance, constant-time compare) |
@@ -67,8 +67,7 @@ run WhatsappCloudSendServer
 | `AWS_REGION` | `QueueAdapter::SqsAdapter` | Standard AWS SDK env var |
 | `AWS_ENDPOINT_URL_SQS` | `QueueAdapter::SqsAdapter` | Override endpoint (use `http://localstack:4566` in dev) |
 | `FALECOM_API_URL` | `Consumer#ingest_client` default | Base URL of the Rails app |
-| `FALECOM_INGEST_HMAC_SECRET` | `Consumer#ingest_client` default | Shared secret with Rails `/internal/ingest` |
-| `FALECOM_DISPATCH_HMAC_SECRET` | `SendServer` + Rails `DispatchClient` | Shared secret with Rails for `/send` |
+| `FALECOM_DISPATCH_HMAC_SECRET` | `SendServer` + Rails `DispatchClient` | Shared secret with Rails for `/send`. `/internal/ingest` has no equivalent — it is unauthenticated at app layer and protected by ingress topology |
 | `CONCURRENCY` | Channel container (convention) | Number of worker threads. Default `1` |
 
 ## Versioning

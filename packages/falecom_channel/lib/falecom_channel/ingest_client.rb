@@ -2,7 +2,6 @@ require "faraday"
 require "faraday/retry"
 require "json"
 require "securerandom"
-require "time"
 
 module FaleComChannel
   # HTTP client for posting inbound payloads to the Rails /internal/ingest endpoint.
@@ -11,20 +10,19 @@ module FaleComChannel
   # Retries on 5xx (up to 3 retries with exponential backoff). Does NOT retry on 4xx —
   # those indicate validation failures.
   #
+  # The /internal/ingest route is unauthenticated at the application layer. Security
+  # is the ingress boundary — operators must not expose /internal/* paths publicly.
+  # See ARCHITECTURE.md "Security → /internal/ingest authentication".
+  #
   # Example:
-  #   client = FaleComChannel::IngestClient.new(
-  #     api_url: ENV.fetch("FALECOM_API_URL"),
-  #     secret:  ENV.fetch("FALECOM_INGEST_HMAC_SECRET")
-  #   )
+  #   client = FaleComChannel::IngestClient.new(api_url: ENV.fetch("FALECOM_API_URL"))
   #   result = client.post(payload_hash)
   #   # => { "message_id" => 123 }
   class IngestClient
     # @param api_url [String] base URL of the Rails app (e.g. "http://rails:3000")
-    # @param secret [String] HMAC secret for signing (FALECOM_INGEST_HMAC_SECRET)
     # @param connection [Faraday::Connection, nil] optional Faraday connection for test injection
-    def initialize(api_url:, secret:, connection: nil)
+    def initialize(api_url:, connection: nil)
       @api_url = api_url
-      @secret = secret
       @connection = connection || build_connection
     end
 
@@ -35,8 +33,6 @@ module FaleComChannel
     # @raise [FaleComChannel::IngestError] on persistent failure or immediate 4xx
     def post(payload_hash)
       body = JSON.generate(payload_hash)
-      ts = Time.now.to_i
-      signature = HmacSigner.sign(body, @secret, timestamp: ts)
       correlation_id = Logging.current_correlation_id || SecureRandom.uuid
 
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -44,8 +40,6 @@ module FaleComChannel
       begin
         response = @connection.post("/internal/ingest") do |req|
           req.headers["Content-Type"] = "application/json"
-          req.headers["X-FaleCom-Signature"] = signature
-          req.headers["X-FaleCom-Timestamp"] = ts.to_s
           req.headers["X-FaleCom-Correlation-Id"] = correlation_id
           req.body = body
         end

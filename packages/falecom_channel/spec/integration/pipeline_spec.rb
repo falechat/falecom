@@ -5,11 +5,11 @@ require "timeout"
 # End-to-end pipeline spec: SQS (stubbed) → Consumer → Payload.validate! →
 # IngestClient → Rails (stubbed via Faraday test adapter).
 #
-# Asserts HMAC signature, correlation-id, and body all flow through every
-# module correctly. No live network.
+# Asserts body + correlation-id flow through every module correctly. No live
+# network. `/internal/ingest` is unauthenticated at app layer — security is
+# ingress topology, not HMAC. See ARCHITECTURE.md § Security.
 
 RSpec.describe "ingestion pipeline" do
-  let(:secret) { "test-ingest-secret" }
   let(:rails_stubs) { Faraday::Adapter::Test::Stubs.new }
   let(:faraday_conn) do
     Faraday.new do |f|
@@ -22,7 +22,6 @@ RSpec.describe "ingestion pipeline" do
   let(:ingest_client) do
     FaleComChannel::IngestClient.new(
       api_url: "http://rails.test",
-      secret: secret,
       connection: faraday_conn
     )
   end
@@ -80,7 +79,7 @@ RSpec.describe "ingestion pipeline" do
     thread.join(2)
   end
 
-  it "delivers a valid message to /internal/ingest with correct HMAC and correlation id, then acks" do
+  it "delivers a valid message to /internal/ingest with correlation id and no HMAC, then acks" do
     captured = {}
     rails_stubs.post("/internal/ingest") do |env|
       captured[:body] = env.body
@@ -100,9 +99,8 @@ RSpec.describe "ingestion pipeline" do
     expect(captured[:body]).to eq(fixture_body)
 
     headers = captured[:headers].transform_keys(&:downcase)
-    ts = headers["x-falecom-timestamp"].to_i
-    expected_sig = FaleComChannel::HmacSigner.sign(fixture_body, secret, timestamp: ts)
-    expect(headers["x-falecom-signature"]).to eq(expected_sig)
+    expect(headers).not_to have_key("x-falecom-signature")
+    expect(headers).not_to have_key("x-falecom-timestamp")
 
     cid = headers["x-falecom-correlation-id"]
     expect(cid).to match(/\A[0-9a-f-]{36}\z/i)

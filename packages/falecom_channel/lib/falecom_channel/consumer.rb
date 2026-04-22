@@ -102,8 +102,7 @@ module FaleComChannel
     # @return [FaleComChannel::IngestClient]
     def ingest_client
       @ingest_client ||= FaleComChannel::IngestClient.new(
-        api_url: ENV.fetch("FALECOM_API_URL"),
-        secret: ENV.fetch("FALECOM_INGEST_HMAC_SECRET")
+        api_url: ENV.fetch("FALECOM_API_URL")
       )
     end
 

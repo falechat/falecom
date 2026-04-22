@@ -67,12 +67,12 @@ RSpec.describe FaleComChannel::DispatchClient do
       client = described_class.new(container_url: container_url, secret: secret,
         connection: build_test_connection(stubs))
 
-      ingest_secret = "ingest-secret-totally-different"
+      other_secret = "some-other-secret"
       client.send_message(payload)
 
-      # Signature must verify with dispatch secret, not ingest secret
+      # Signature must verify with the dispatch secret, not any other secret
       expect(FaleComChannel::HmacSigner.sign(captured_body, secret, timestamp: captured_ts)).to eq(captured_sig)
-      expect(FaleComChannel::HmacSigner.sign(captured_body, ingest_secret, timestamp: captured_ts)).not_to eq(captured_sig)
+      expect(FaleComChannel::HmacSigner.sign(captured_body, other_secret, timestamp: captured_ts)).not_to eq(captured_sig)
     end
 
     it "request includes Content-Type: application/json" do

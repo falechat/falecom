@@ -3,7 +3,6 @@ require "json"
 
 RSpec.describe FaleComChannel::IngestClient do
   let(:api_url) { "http://rails.example.com" }
-  let(:secret) { "test-secret" }
   let(:payload) { {"channel_id" => "ch-1", "event" => "message_received", "external_id" => "ext-1"} }
 
   # Build a Faraday connection backed by the test adapter WITH retry middleware active.
@@ -27,34 +26,24 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, JSON.generate({"ok" => true})]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       client.post(payload)
       stubs.verify_stubbed_calls
     end
 
-    it "request body is JSON.generate(payload) — serialized exactly once (signature must match the body as sent)" do
+    it "request body is JSON.generate(payload)" do
       captured_body = nil
-      captured_sig = nil
-      captured_ts = nil
 
       stubs = Faraday::Adapter::Test::Stubs.new
       stubs.post("/internal/ingest") do |env|
         captured_body = env.body
-        captured_sig = env.request_headers["X-FaleCom-Signature"]
-        captured_ts = env.request_headers["X-FaleCom-Timestamp"].to_i
         [200, {"Content-Type" => "application/json"}, "{}"]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       client.post(payload)
 
-      expected_body = JSON.generate(payload)
-      expect(captured_body).to eq(expected_body)
-
-      expected_sig = FaleComChannel::HmacSigner.sign(expected_body, secret, timestamp: captured_ts)
-      expect(captured_sig).to eq(expected_sig)
+      expect(captured_body).to eq(JSON.generate(payload))
     end
 
     it "request includes Content-Type: application/json" do
@@ -65,51 +54,25 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, "{}"]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       client.post(payload)
 
       expect(captured_ct).to eq("application/json")
     end
 
-    it "request includes X-FaleCom-Timestamp as a unix seconds string" do
+    it "does NOT send HMAC signature or timestamp headers — /internal/ingest is unauthenticated at app layer" do
+      captured_headers = nil
       stubs = Faraday::Adapter::Test::Stubs.new
-      captured_ts = nil
       stubs.post("/internal/ingest") do |env|
-        captured_ts = env.request_headers["X-FaleCom-Timestamp"]
+        captured_headers = env.request_headers.to_h.transform_keys(&:downcase)
         [200, {"Content-Type" => "application/json"}, "{}"]
       end
 
-      before_call = Time.now.to_i
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
-      client.post(payload)
-      after_call = Time.now.to_i
-
-      ts_int = captured_ts.to_i
-      expect(ts_int).to be_between(before_call, after_call)
-      expect(captured_ts).to eq(ts_int.to_s)
-    end
-
-    it "request includes X-FaleCom-Signature computed by HmacSigner.sign(body, secret, timestamp:) — matches exactly" do
-      captured_sig = nil
-      captured_ts = nil
-      captured_body = nil
-
-      stubs = Faraday::Adapter::Test::Stubs.new
-      stubs.post("/internal/ingest") do |env|
-        captured_sig = env.request_headers["X-FaleCom-Signature"]
-        captured_ts = env.request_headers["X-FaleCom-Timestamp"].to_i
-        captured_body = env.body
-        [200, {"Content-Type" => "application/json"}, "{}"]
-      end
-
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       client.post(payload)
 
-      expected_sig = FaleComChannel::HmacSigner.sign(captured_body, secret, timestamp: captured_ts)
-      expect(captured_sig).to eq(expected_sig)
+      expect(captured_headers).not_to have_key("x-falecom-signature")
+      expect(captured_headers).not_to have_key("x-falecom-timestamp")
     end
 
     it "request includes X-FaleCom-Correlation-Id from Logging.current_correlation_id when set" do
@@ -120,8 +83,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, "{}"]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       FaleComChannel::Logging.with_correlation_id("test-cid-ingest") do
         client.post(payload)
@@ -138,8 +100,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, "{}"]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       FaleComChannel::Logging.with_correlation_id(nil) do
         client.post(payload)
@@ -154,8 +115,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, JSON.generate({"ingested" => true, "id" => 42})]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       result = client.post(payload)
 
       expect(result).to eq({"ingested" => true, "id" => 42})
@@ -167,8 +127,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, ""]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       result = client.post(payload)
 
       expect(result).to eq({})
@@ -191,8 +150,7 @@ RSpec.describe FaleComChannel::IngestClient do
         end
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
       result = client.post(payload)
 
       expect(result).to eq({"ok" => true})
@@ -207,8 +165,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [422, {"Content-Type" => "application/json"}, JSON.generate({"error" => "validation failed"})]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       expect { client.post(payload) }.to raise_error(FaleComChannel::IngestError)
       expect(call_count).to eq(1)
@@ -225,8 +182,7 @@ RSpec.describe FaleComChannel::IngestClient do
         end
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       expect { client.post(payload) }.to raise_error(FaleComChannel::IngestError)
       expect(call_count).to eq(4)
@@ -238,8 +194,7 @@ RSpec.describe FaleComChannel::IngestClient do
         [200, {"Content-Type" => "application/json"}, JSON.generate({"ok" => true})]
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       logged = nil
       allow(FaleComChannel.logger).to receive(:info) { |msg| logged = msg }
@@ -260,8 +215,7 @@ RSpec.describe FaleComChannel::IngestClient do
         end
       end
 
-      client = described_class.new(api_url: api_url, secret: secret,
-        connection: build_test_connection(stubs))
+      client = described_class.new(api_url: api_url, connection: build_test_connection(stubs))
 
       logged = nil
       allow(FaleComChannel.logger).to receive(:error) { |msg| logged = msg }

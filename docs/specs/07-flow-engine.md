@@ -329,7 +329,14 @@ class Flows::Handoff
       )
     end
 
-    # Apply collected data
+    # Apply collected data.
+    #
+    # Bot-collected names OVERRIDE whatever the provider reported for the Contact.
+    # Rationale: Contacts::Resolve#merge_contact_fields! (Spec 04 v2 §2.4) refuses
+    # to overwrite a non-blank provider-reported name; but a bot prompt like
+    # "Qual seu nome completo?" is an explicit user-stated value and should win
+    # over auto-populated provider names (WhatsApp profile display names, etc).
+    # This is the one exception to the "don't clobber existing data" rule.
     if content["assign_collected_name"] && conversation_flow.state["contact_name"].present?
       conversation.contact.update!(name: conversation_flow.state["contact_name"])
     end

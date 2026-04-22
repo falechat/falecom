@@ -144,7 +144,7 @@ The goal is to give developers a fair-priced, self-hostable platform they can se
 │   API Gateway + a new SQS queue.                         │
 └────────────────────────┬─────────────────────────────────┘
                          │ POST /internal/ingest
-                         │ (HMAC-signed, JSON)
+                         │ (JSON, internal ingress only)
 ┌────────────────────────▼─────────────────────────────────┐
 │            LAYER 3 — FALECOM APP (Rails 8.1)             │
 │        Hotwire · ViewComponent · JR Components · Vite    │
@@ -450,7 +450,7 @@ Every channel container does the same four infrastructure jobs: pull from SQS, p
 |---|---|
 | `FaleComChannel::Consumer` | SQS polling loop with configurable concurrency, visibility timeout, ack/nack, DLQ config, graceful shutdown |
 | `FaleComChannel::Payload` | Common Ingestion Payload schema (dry-struct + dry-validation). Single source of truth for the contract. Changes here ripple to every container via `bundle update` |
-| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. Retry on 5xx, timeouts, structured logging |
+| `FaleComChannel::IngestClient` | Faraday client for `POST /internal/ingest`. Retry on 5xx, timeouts, correlation-id propagation, structured logging. No app-layer auth — security is ingress topology (see `Security → /internal/ingest authentication`) |
 | `FaleComChannel::SendServer` | Roda base app for `/send`. Request logging, standard error responses. Containers mount their own handler inside |
 | `FaleComChannel::Logging` | Structured JSON logging helpers with correlation IDs that flow through the whole pipeline |
 
@@ -974,8 +974,22 @@ services:
     ports:
       - "4000:4000"
     environment:
-      QUEUE_BACKEND: local
-      DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
+    depends_on:
+      - localstack
+
+  # LocalStack provides a local SQS endpoint for dev / integration tests.
+  # In production, AWS SQS is the real queue.
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
 
   app:
     build: ../packages/app
@@ -983,7 +997,6 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
-      FALECOM_INGEST_HMAC_SECRET: dev-ingest-secret
       FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
       CHANNEL_WHATSAPP_CLOUD_URL: http://channel-whatsapp-cloud:9292
       CHANNEL_ZAPI_URL: http://channel-zapi:9292
@@ -1001,25 +1014,29 @@ services:
   channel-whatsapp-cloud:
     build: ../packages/channels/whatsapp-cloud
     environment:
-      QUEUE_BACKEND: local              # local | sqs
-      DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
+      SQS_QUEUE_NAME: sqs-whatsapp-cloud
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
       FALECOM_API_URL: http://app:3000
-      FALECOM_INGEST_HMAC_SECRET: dev-ingest-secret
       FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev-placeholder}
     depends_on:
-      - postgres
+      - localstack
 
   channel-zapi:
     build: ../packages/channels/zapi
     environment:
-      QUEUE_BACKEND: local
-      DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
+      SQS_QUEUE_NAME: sqs-zapi
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
       FALECOM_API_URL: http://app:3000
-      FALECOM_INGEST_HMAC_SECRET: dev-ingest-secret
       FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
     depends_on:
-      - postgres
+      - localstack
 
 volumes:
   postgres_data:
@@ -1040,7 +1057,7 @@ Opening the repo in VS Code / Cursor with the devcontainer extension triggers:
 2. The workspace container is created with Ruby + tooling.
 3. `postCreateCommand: bin/setup` runs — `bundle install`, `yarn install`, `bin/rails db:prepare`, seeds dev channels.
 4. The editor attaches into the workspace container. Files open, extensions work, terminal sessions are inside the container.
-5. From the integrated terminal: `bin/dev` starts Rails + Vite; separately `docker compose up channel-whatsapp-cloud channel-zapi dev-webhook` for the ingestion pipeline.
+5. From the integrated terminal: `bin/dev` starts Rails + Vite; separately `docker compose up localstack channel-whatsapp-cloud channel-zapi dev-webhook` for the ingestion pipeline.
 
 #### Without a devcontainer
 
@@ -1049,7 +1066,7 @@ Devcontainer is the supported path. For contributors without devcontainer suppor
 
 ### Queue Adapter (inside `falecom_channel` gem)
 
-Part of the shared gem. Used by channel containers to pull messages, and by the `dev-webhook` helper to enqueue. In production, AWS API Gateway writes directly to SQS, so nothing "enqueues" in our own application code — only consumers run.
+Part of the shared gem. Used by channel containers to pull messages from SQS. The `dev-webhook` helper also uses the `aws-sdk-sqs` client directly (pointed at LocalStack via `AWS_ENDPOINT_URL_SQS`) to enqueue whatever it receives. In production, AWS API Gateway writes directly to SQS, so nothing "enqueues" in our own application code — only consumers run.
 
 ```ruby
 module FaleComChannel
@@ -1343,18 +1360,16 @@ Each migration is reversible. Data backfills, when needed, run as separate migra
 
 ### `/internal/ingest` authentication
 
-Every POST from channel containers includes:
+The `/internal/ingest` route is **unauthenticated at the application layer**. The security boundary is the ingress: operators MUST NOT expose `/internal/*` paths on any public-facing listener. In practice this means the production ingress (ALB, CloudFront, Caddy, whatever) routes only the dashboard and the future `/api/v1/*` paths; the `/internal/*` prefix is served only on the internal listener reachable from channel containers inside the same private network.
 
-```
-X-FaleCom-Signature: sha256=<HMAC-SHA256 of raw body, using FALECOM_INGEST_HMAC_SECRET>
-X-FaleCom-Timestamp: <unix timestamp>
-```
+The `Internal::IngestController` **does** enforce two checks on every request:
 
-Rails verifies:
-- Signature matches
-- Timestamp is within 5 minutes (replay protection)
+1. **Channel registration** — `Channel.find_by(channel_type:, identifier:)&.active?`. Payloads whose `channel.type + channel.identifier` does not match an active, registered channel return 422. This is both the auth gate and the config sanity check — an unknown `channel_type + identifier` is either a misconfiguration or an attacker who slipped past the ingress boundary.
+2. **Idempotency** — the `messages` table's unique index on `(channel_id, external_id)` uses `ON CONFLICT DO NOTHING`, so SQS redelivery and any replay (accidental or malicious) never creates duplicates.
 
-Only channel containers share this secret. AWS API Gateway does not validate it — it only moves raw bytes to SQS.
+Why no HMAC? The hops that genuinely need auth already have it: SQS uses IAM, and TLS protects the wire. The `container → Rails` hop is always inside a single operator-controlled trust boundary (VPC, compose network, Kamal hosts). Adding HMAC on top was defense-in-depth against a single scenario — operator ingress misconfiguration exposing `/internal/*` publicly — at the cost of a second secret to rotate and a failure mode where container/Rails secrets drift and every request 401s silently. Documenting the ingress contract and using the Channel lookup as the auth gate is simpler and more honest about where the real boundary is.
+
+If an operator genuinely cannot guarantee ingress isolation, the right answer is to put `/internal/ingest` behind mTLS or an IP allowlist at the ingress, not to reintroduce a shared HMAC secret.
 
 ### Channel container `/send` authentication
 
@@ -1419,13 +1434,13 @@ Every controller action scopes by `current_user.account_id`. Models have `defaul
 
 1. `packages/falecom_channel` gem: Consumer, Payload, IngestClient, SendServer, Logging. Covered by its own RSpec suite (including a fake SQS adapter for the Consumer tests). Published only via path.
 2. Channel registration: admin UI to create/edit `Channel` records (channel_type, identifier, name, active, credentials). At least WhatsApp Cloud and Z-API in seed data so we exercise two different provider shapes.
-3. Rails `Internal::IngestController` with HMAC + timestamp verification and Channel registration lookup (rejects unknown `channel_type + identifier` with 422).
+3. Rails `Internal::IngestController` with Channel registration lookup (rejects unknown `channel_type + identifier` with 422). No app-layer auth — security is ingress topology (see `Security → /internal/ingest authentication`).
 4. `Ingestion::ProcessMessage` service + `Contacts::Resolve`, `Conversations::ResolveOrCreate`, `Messages::Create`. Idempotency via `(channel_id, external_id)` unique index.
-5. `QueueAdapter` (inside the gem): `local` (Postgres-backed table) and `sqs` implementations.
+5. `QueueAdapter` (inside the gem): `sqs` implementation. Dev uses the same adapter pointed at LocalStack via `AWS_ENDPOINT_URL_SQS`.
 6. `packages/channels/whatsapp-cloud`: the reference container. Uses `falecom_channel`, adds `Parser`, `SignatureVerifier`, `Sender`. Should end up around 200–300 lines total across all files.
-7. `infra/dev-webhook` — tiny Roda app that mimics AWS API Gateway locally: receives POST, routes by path to the right local queue. Dev-only.
+7. `infra/dev-webhook` — tiny Roda app that mimics AWS API Gateway locally: receives POST, enqueues the raw body to the right LocalStack SQS queue. Dev-only.
 8. `infra/terraform` — API Gateway (HTTP API) with one route per channel type, direct SQS integration, per-route throttling, DLQs, IAM. Not deployed yet in Phase 3 but reviewable.
-9. End-to-end integration test: real webhook POST → `dev-webhook` → local queue → `whatsapp-cloud` container → `/internal/ingest` → DB → Turbo Stream broadcast visible in test client.
+9. End-to-end integration test: real webhook POST → `dev-webhook` → LocalStack SQS → `whatsapp-cloud` container → `/internal/ingest` → DB → Turbo Stream broadcast visible in test client.
 
 ### Phase 4 — Outbound
 
