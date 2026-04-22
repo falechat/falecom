@@ -1,4 +1,5 @@
 module WhatsappCloud; end
+
 module WhatsappCloud::Fixtures
   module_function
 
