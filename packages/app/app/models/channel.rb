@@ -16,4 +16,5 @@ class Channel < ApplicationRecord
   has_many :teams, through: :channel_teams
   has_many :contact_channels, dependent: :destroy
   has_many :conversations, dependent: :restrict_with_error
+  has_many :messages, dependent: :restrict_with_error
 end

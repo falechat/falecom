@@ -45,32 +45,76 @@ services:
       timeout: 5s
       retries: 10
 
-  # Placeholders for future services. Uncomment when the owning spec lands.
-  #
-  # app:
-  #   build: ../packages/app
-  #   command: bin/rails server -b 0.0.0.0
-  #   ports: ["3000:3000"]
-  #   depends_on: [postgres]
-  #
-  # app-jobs:
-  #   build: ../packages/app
-  #   command: bin/jobs start
-  #   depends_on: [postgres]
-  #
-  # dev-webhook:
-  #   build: ../infra/dev-webhook
-  #   ports: ["4000:4000"]
-  #
-  # whatsapp-cloud:
-  #   build: ../packages/channels/whatsapp-cloud
-  #   ports: ["4001:4001"]
-  #   depends_on: [postgres]
-  #
-  # zapi:
-  #   build: ../packages/channels/zapi
-  #   ports: ["4002:4002"]
-  #   depends_on: [postgres]
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
+      LOCALSTACK_HOST: localstack
+      SQS_ENDPOINT_STRATEGY: off
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  dev-webhook:
+    build:
+      context: ../infra/dev-webhook
+    ports:
+      - "4000:4000"
+    environment:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ../packages/app
+    command: bin/rails server -b 0.0.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
+      FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
+      CHANNEL_WHATSAPP_CLOUD_URL: http://channel-whatsapp-cloud:9292
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app-jobs:
+    build:
+      context: ../packages/app
+    command: bin/jobs start
+    environment:
+      DATABASE_URL: postgres://falecom:falecom@postgres:5432/falecom_development
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  channel-whatsapp-cloud:
+    build:
+      context: ../packages/channels/whatsapp-cloud
+    environment:
+      SQS_QUEUE_NAME: sqs-whatsapp-cloud
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
+      FALECOM_API_URL: http://app:3000
+      FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev-placeholder}
+    depends_on:
+      localstack:
+        condition: service_healthy
+      app:
+        condition: service_started
 
 volumes:
   postgres-data:
