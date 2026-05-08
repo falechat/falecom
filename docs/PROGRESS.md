@@ -20,7 +20,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 02 | [Core Domain Models & Audit Logging](./specs/02-core-domain-models.md)                  | Shipped  | 02                     | Shipped 2026-04-21 via PR #3. All 10 core domain models + Events::Emit + Current.user + idempotent seeds in place. |
 | 03 | [`falecom_channel` Gem](./specs/03-falecom-channel-gem.md)                              | Shipped  | 03                     | Shipped 2026-04-21 via PR #4. Gem provides Payload schemas, SqsAdapter, Consumer, HMAC clients, SendServer, Logging. |
 | 04 | [Ingestion Pipeline](./specs/04-ingestion-pipeline.md)                                  | Shipped  | 04a, 04b               | Shipped 2026-04-22 via PR #5. Rails ingest + whatsapp-cloud container + dev-webhook + LocalStack SQS, full e2e green. |
-| 05 | [Outbound Dispatch](./specs/05-outbound-dispatch.md)                                    | Draft    | —                      | Depends on 02 + 03.                                                                             |
+| 05 | [Outbound Dispatch](./specs/05-outbound-dispatch.md)                                    | Planned  | 05a, 05b, 05c, 05d     | Depends on 02 + 03 + 04. Split into 4 plans (service/job, container send, reply form, status display). |
 | 06 | [Assignment, Transfer & Agent Workspace](./specs/06-assignment-transfer-workspace.md)   | Draft    | —                      | Depends on 04 + 05.                                                                             |
 | 07 | [Flow Engine](./specs/07-flow-engine.md)                                                | Draft    | —                      | Depends on 04 + 06.                                                                             |
 
@@ -34,6 +34,10 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 03  | [`falecom_channel` Gem](./plans/03-2026-04-21-falecom-channel-gem.md)                    | 03   | Shipped  | [#4](https://github.com/falechat/falecom/pull/4) (1e7532f)  | 2026-04-21 |
 | 04a | [Phase 4A — Ingestion Rails](./plans/04a-2026-04-22-ingestion-pipeline-rails.md) | 04   | Shipped  | [#5](https://github.com/falechat/falecom/pull/5) (9d630bf)  | 2026-04-22 |
 | 04b | [Phase 4B — Ingestion Container + Infra](./plans/04b-2026-04-22-ingestion-pipeline-container.md) | 04   | Shipped  | [#5](https://github.com/falechat/falecom/pull/5) (9d630bf)  | 2026-04-22 |
+| 05a | [Outbound Dispatch — Service + Job](./plans/05a-2026-05-08-outbound-dispatch-service.md) | 05   | Draft    | —                                                           | —          |
+| 05b | [WhatsApp Cloud /send Wiring](./plans/05b-2026-05-08-whatsapp-cloud-send.md)             | 05   | Draft    | —                                                           | —          |
+| 05c | [Reply Form Dashboard](./plans/05c-2026-05-08-reply-form-dashboard.md)                   | 05   | Draft    | —                                                           | —          |
+| 05d | [Status Display + Flow](./plans/05d-2026-05-08-status-display-flow.md)                   | 05   | Draft    | —                                                           | —          |
 
 ## Recently shipped
 
