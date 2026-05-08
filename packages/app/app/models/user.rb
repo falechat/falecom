@@ -13,4 +13,8 @@ class User < ApplicationRecord
   validates :name, presence: true
   validates :role, presence: true
   validates :email_address, presence: true, uniqueness: true
+
+  def can_reply_to?(conversation)
+    admin? || conversation.assignee_id == id
+  end
 end
