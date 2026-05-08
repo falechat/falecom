@@ -128,6 +128,7 @@ services:
       AWS_ENDPOINT_URL_SQS: http://localstack:4566
       FALECOM_API_URL: http://app:3000
       FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-dev-app-secret}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev-placeholder}
     depends_on:
       localstack:
@@ -143,6 +144,11 @@ services:
       - "4001:4001"
     environment:
       PORT: 4001
+      DEV_WEBHOOK_URL: http://dev-webhook:4000
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-dev-app-secret}
+    depends_on:
+      dev-webhook:
+        condition: service_started
 
 volumes:
   postgres-data:

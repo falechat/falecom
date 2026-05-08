@@ -1,9 +1,9 @@
 FROM ruby:4.0.2-slim
 
 WORKDIR /app
-COPY Gemfile ./
 RUN apt-get update -qq && apt-get install -y --no-install-recommends build-essential git \
   && rm -rf /var/lib/apt/lists/*
+COPY Gemfile Gemfile.lock ./
 RUN bundle install
 
 COPY . .
