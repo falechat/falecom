@@ -1,0 +1,11 @@
+<h1 class="text-xl font-semibold mb-4">Conversations</h1>
+<ul class="space-y-2">
+  <% @conversations.each do |c| %>
+    <li>
+      <%= link_to dashboard_conversation_path(c), class: "block p-3 border rounded hover:bg-gray-50" do %>
+        <span class="font-medium"><%= c.contact&.name || "(unknown)" %></span>
+        <span class="text-xs text-gray-500"> · #<%= c.display_id %> · <%= c.status %></span>
+      <% end %>
+    </li>
+  <% end %>
+</ul>

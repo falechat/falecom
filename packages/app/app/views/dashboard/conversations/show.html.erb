@@ -1,0 +1,9 @@
+<h1 class="text-xl font-semibold mb-4">
+  <%= @conversation.contact&.name || "(unknown)" %> · #<%= @conversation.display_id %>
+</h1>
+
+<div id="messages-<%= @conversation.id %>" class="flex flex-col mb-4">
+  <%= render(MessageComponent.with_collection(@messages)) %>
+</div>
+
+<%= render "reply_form", conversation: @conversation %>
