@@ -15,7 +15,11 @@ RSpec.describe "Inbound simulator end-to-end", :integration do
   after(:all) do
     if @channel
       Message.where(channel_id: @channel.id).delete_all
-      Event.joins(:subject_message).where(messages: {channel_id: @channel.id}).delete_all rescue nil
+      begin
+        Event.joins(:subject_message).where(messages: {channel_id: @channel.id}).delete_all
+      rescue
+        nil
+      end
       Conversation.where(channel_id: @channel.id).delete_all
       ContactChannel.where(channel_id: @channel.id).delete_all
       @channel.destroy
@@ -32,7 +36,11 @@ RSpec.describe "Inbound simulator end-to-end", :integration do
       c.credentials = {access_token: "t", phone_number_id: "15550000099"}
     end
     Timeout.timeout(15) do
-      until (Net::HTTP.get_response(URI.join(ENV.fetch("META_STUB_URL", "http://meta-stub:4001"), "/health")).code == "200" rescue false)
+      until begin
+        Net::HTTP.get_response(URI.join(ENV.fetch("META_STUB_URL", "http://meta-stub:4001"), "/health")).code == "200"
+      rescue
+        false
+      end
         sleep 0.5
       end
     end
@@ -48,7 +56,10 @@ RSpec.describe "Inbound simulator end-to-end", :integration do
       loop do
         r = c.receive_message(queue_url: url, wait_time_seconds: 1, max_number_of_messages: 10, visibility_timeout: 1)
         break if r.messages.empty? && drained > 0 && r.messages.empty?
-        r.messages.each { |m| c.delete_message(queue_url: url, receipt_handle: m.receipt_handle); drained += 1 }
+        r.messages.each { |m|
+          c.delete_message(queue_url: url, receipt_handle: m.receipt_handle)
+          drained += 1
+        }
         break if r.messages.empty?
       end
     end
