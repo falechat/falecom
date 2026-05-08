@@ -1,0 +1,7 @@
+<%= turbo_stream.append "messages-#{@conversation.id}" do %>
+  <%= render(MessageComponent.new(message: @message)) %>
+<% end %>
+
+<%= turbo_stream.replace "reply-form-#{@conversation.id}",
+      partial: "dashboard/conversations/reply_form",
+      locals: {conversation: @conversation} %>

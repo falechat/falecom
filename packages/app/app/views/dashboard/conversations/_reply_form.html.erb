@@ -1,0 +1,11 @@
+<%= turbo_frame_tag "reply-form-#{conversation.id}" do %>
+  <%= form_with url: dashboard_conversation_messages_path(conversation), method: :post, data: {turbo_frame: "_top"} do |f| %>
+    <% if local_assigns[:error] %>
+      <p class="text-red-600 text-sm mb-1"><%= error %></p>
+    <% end %>
+    <%= f.fields_for :message do |m| %>
+      <%= m.text_area :content, rows: 3, placeholder: "Type a reply…", class: "w-full border rounded p-2", required: true %>
+    <% end %>
+    <%= f.submit "Send", class: "mt-2 bg-blue-600 text-white px-4 py-2 rounded" %>
+  <% end %>
+<% end %>

@@ -1,0 +1,6 @@
+<article id="message-<%= message.id %>" class="<%= message.outbound? ? 'self-end bg-blue-50' : 'bg-white' %> rounded-lg p-3 my-2 max-w-prose border">
+  <p><%= message.content %></p>
+  <% if message.outbound? %>
+    <span class="text-xs text-gray-400 status-indicator" data-message-id="<%= message.id %>"><%= message.status %></span>
+  <% end %>
+</article>
