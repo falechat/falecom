@@ -6,6 +6,10 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Allow inbound requests from sibling docker services in dev (consumer container, etc).
+  config.hosts.clear
+  config.host_authorization = {exclude: ->(_) { true }}
+
   # Do not eager load code on boot.
   config.eager_load = false
 
@@ -69,3 +73,4 @@ Rails.application.configure do
   config.active_record.encryption.deterministic_key = "dev_deterministic_key_32chars___"
   config.active_record.encryption.key_derivation_salt = "dev_key_derivation_salt_32chars_"
 end
+Rails.application.config.hosts.clear
