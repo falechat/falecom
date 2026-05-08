@@ -15,5 +15,13 @@ module WhatsappCloud
       payload_hash = JSON.parse(JSON.generate(payload.to_h))
       sender.send_message(payload_hash)
     end
+
+    def error_status_for(error)
+      case error
+      when Sender::RetryableSendError then 503
+      when Sender::TerminalSendError then 422
+      else 500
+      end
+    end
   end
 end

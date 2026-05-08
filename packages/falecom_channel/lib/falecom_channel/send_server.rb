@@ -66,6 +66,16 @@ module FaleComChannel
       raise NotImplementedError, "Subclass must implement #handle_send"
     end
 
+    # Override in subclasses to map provider errors to HTTP status codes.
+    # Default: any error is a 500 (which Rails-side DispatchClient treats as retryable).
+    # Subclasses should return 4xx for terminal provider errors.
+    #
+    # @param _error [StandardError]
+    # @return [Integer]
+    def error_status_for(_error)
+      500
+    end
+
     # ── Routes ─────────────────────────────────────────────────────────────────
 
     route do |r|
@@ -126,7 +136,7 @@ module FaleComChannel
               error: e.message,
               error_class: e.class.name
             )
-            r.halt(500, {"error" => e.message})
+            r.halt(error_status_for(e), {"error" => e.message})
           end
 
           FaleComChannel.logger.info(event: "send_dispatched")
