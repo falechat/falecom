@@ -8,6 +8,9 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 # that will avoid rails generators crashing because migrations haven't been run yet
 # return unless Rails.env.test?
 require "rspec/rails"
+require "view_component/test_helpers"
+require "view_component/system_test_helpers"
+require "capybara/rspec"
 require "falecom_channel"
 Dir[Rails.root.join("spec", "support", "**", "*.rb")].each { |f| require f }
 # Add additional requires below this line. Rails is not loaded until this point!
@@ -66,6 +69,9 @@ RSpec.configure do |config|
   # config.infer_spec_type_from_file_location!
 
   config.filter_run_excluding integration: true unless ENV["RUN_INTEGRATION"] == "1"
+
+  config.include ViewComponent::TestHelpers, type: :component
+  config.include Capybara::RSpecMatchers, type: :component
 
   # Filter lines from Rails gems in backtraces.
   config.filter_rails_from_backtrace!
