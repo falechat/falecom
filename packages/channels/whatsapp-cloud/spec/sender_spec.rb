@@ -40,14 +40,44 @@ RSpec.describe WhatsappCloud::Sender do
       expect(result).to eq(external_id: "wamid.outbound.123")
     end
 
-    it "raises for non-text content_type" do
+    it "raises TerminalSendError for non-text content_type" do
       payload["message"]["content_type"] = "image"
-      expect { sender.send_message(payload) }.to raise_error(NotImplementedError, /image/)
+      expect { sender.send_message(payload) }
+        .to raise_error(WhatsappCloud::Sender::TerminalSendError, /image/)
     end
 
-    it "raises WhatsappCloud::Sender::SendError on 4xx" do
+    it "raises TerminalSendError on 4xx" do
       stub_request(:post, endpoint).to_return(status: 400, body: JSON.generate("error" => {"message" => "invalid recipient"}))
-      expect { sender.send_message(payload) }.to raise_error(WhatsappCloud::Sender::SendError, /invalid recipient/)
+      expect { sender.send_message(payload) }
+        .to raise_error(WhatsappCloud::Sender::TerminalSendError, /invalid recipient/)
+    end
+
+    it "raises RetryableSendError on 5xx" do
+      stub_request(:post, endpoint).to_return(status: 503, body: JSON.generate("error" => {"message" => "upstream"}))
+      expect { sender.send_message(payload) }
+        .to raise_error(WhatsappCloud::Sender::RetryableSendError, /upstream/)
+    end
+
+    it "raises TerminalSendError when 200 OK has no messages id" do
+      stub_request(:post, endpoint).to_return(status: 200, body: "{}")
+      expect { sender.send_message(payload) }
+        .to raise_error(WhatsappCloud::Sender::TerminalSendError, /missing message id/i)
+    end
+
+    it "raises RetryableSendError on connection failure" do
+      stub_request(:post, endpoint).to_raise(Faraday::ConnectionFailed.new("boom"))
+      expect { sender.send_message(payload) }
+        .to raise_error(WhatsappCloud::Sender::RetryableSendError, /boom/)
+    end
+  end
+
+  describe "META_API_BASE override" do
+    it "honors ENV[META_API_BASE] for default connection" do
+      stub_const("ENV", ENV.to_h.merge("META_API_BASE" => "http://meta-stub:4000"))
+      stub_request(:post, "http://meta-stub:4000/v21.0/#{phone_number_id}/messages")
+        .to_return(status: 200, body: JSON.generate("messages" => [{"id" => "wamid.x"}]))
+      result = sender.send_message(payload)
+      expect(result).to eq(external_id: "wamid.x")
     end
   end
 end
