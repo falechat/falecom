@@ -101,6 +101,23 @@ services:
   channel-whatsapp-cloud:
     build:
       context: ../packages/channels/whatsapp-cloud
+    command: bundle exec puma -C config/puma.rb config.ru
+    ports:
+      - "9292:9292"
+    environment:
+      PORT: 9292
+      FALECOM_DISPATCH_HMAC_SECRET: dev-dispatch-secret
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev-placeholder}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-dev-placeholder}
+      META_API_BASE: http://meta-stub:4001
+    depends_on:
+      meta-stub:
+        condition: service_started
+
+  channel-whatsapp-cloud-consumer:
+    build:
+      context: ../packages/channels/whatsapp-cloud
+    command: bundle exec ruby app.rb
     environment:
       SQS_QUEUE_NAME: sqs-whatsapp-cloud
       AWS_REGION: us-east-1
@@ -115,6 +132,15 @@ services:
         condition: service_healthy
       app:
         condition: service_started
+
+  meta-stub:
+    build:
+      context: ../infra/meta-stub
+    command: bundle exec puma -p 4001 config.ru
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
 
 volumes:
   postgres-data:
