@@ -1,6 +1,7 @@
 class SendMessageJob < ApplicationJob
   queue_as :outbound
 
+  retry_on FaleComChannel::RetryableDispatchError, wait: :polynomially_longer, attempts: 5
   retry_on Faraday::Error, wait: :polynomially_longer, attempts: 5
   discard_on ActiveRecord::RecordNotFound
 

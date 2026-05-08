@@ -69,7 +69,9 @@ module FaleComChannel
           error: e.message
         )
 
-        raise DispatchError, "Dispatch failed — status=#{status} body=#{resp_body}"
+        msg = "Dispatch failed — status=#{status} body=#{resp_body}"
+        retryable = status.nil? || (500..599).cover?(status.to_i) || e.is_a?(Faraday::TimeoutError) || e.is_a?(Faraday::ConnectionFailed)
+        raise(retryable ? RetryableDispatchError : DispatchError, msg)
       end
     end
 
