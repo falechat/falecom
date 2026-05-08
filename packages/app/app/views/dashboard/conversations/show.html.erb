@@ -1,3 +1,5 @@
+<%= turbo_stream_from "conversation:#{@conversation.id}" %>
+
 <h1 class="text-xl font-semibold mb-4">
   <%= @conversation.contact&.name || "(unknown)" %> · #<%= @conversation.display_id %>
 </h1>

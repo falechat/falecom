@@ -1,0 +1,6 @@
+<span id="message_<%= message.id %>_status"
+      class="<%= config[:color] %> inline-flex items-center"
+      data-icon="<%= config[:icon] %>"
+      title="<%= message.error if message.failed? %>">
+  <%= icon_html %>
+</span>
