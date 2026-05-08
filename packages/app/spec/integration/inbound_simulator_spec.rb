@@ -36,6 +36,24 @@ RSpec.describe "Inbound simulator end-to-end", :integration do
         sleep 0.5
       end
     end
+    drain_sqs!
+  end
+
+  def drain_sqs!
+    require "aws-sdk-sqs"
+    c = Aws::SQS::Client.new(region: "us-east-1")
+    url = c.get_queue_url(queue_name: "sqs-whatsapp-cloud").queue_url
+    drained = 0
+    Timeout.timeout(20) do
+      loop do
+        r = c.receive_message(queue_url: url, wait_time_seconds: 1, max_number_of_messages: 10, visibility_timeout: 1)
+        break if r.messages.empty? && drained > 0 && r.messages.empty?
+        r.messages.each { |m| c.delete_message(queue_url: url, receipt_handle: m.receipt_handle); drained += 1 }
+        break if r.messages.empty?
+      end
+    end
+  rescue => e
+    warn "drain_sqs!: #{e.message}"
   end
 
   def post_json(path, hash)
