@@ -1,6 +1,6 @@
 module Dispatch
   class Outbound
-    def self.call(conversation:, content:, content_type: "text", attachments: [], metadata: {}, actor:, reply_to_external_id: nil)
+    def self.call(conversation:, content:, actor:, content_type: "text", attachments: [], metadata: {}, reply_to_external_id: nil)
       message = Messages::Create.call(
         conversation: conversation,
         direction: "outbound",
