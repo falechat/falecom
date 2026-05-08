@@ -100,7 +100,8 @@ services:
 
   channel-whatsapp-cloud:
     build:
-      context: ../packages/channels/whatsapp-cloud
+      context: ..
+      dockerfile: packages/channels/whatsapp-cloud/Dockerfile
     command: bundle exec puma -C config/puma.rb config.ru
     ports:
       - "9292:9292"
@@ -116,7 +117,8 @@ services:
 
   channel-whatsapp-cloud-consumer:
     build:
-      context: ../packages/channels/whatsapp-cloud
+      context: ..
+      dockerfile: packages/channels/whatsapp-cloud/Dockerfile
     command: bundle exec ruby app.rb
     environment:
       SQS_QUEUE_NAME: sqs-whatsapp-cloud

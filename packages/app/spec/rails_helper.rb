@@ -65,6 +65,8 @@ RSpec.configure do |config|
   # To enable this behaviour uncomment the line below.
   # config.infer_spec_type_from_file_location!
 
+  config.filter_run_excluding integration: true unless ENV["RUN_INTEGRATION"] == "1"
+
   # Filter lines from Rails gems in backtraces.
   config.filter_rails_from_backtrace!
   # arbitrary gems may also be filtered via:
