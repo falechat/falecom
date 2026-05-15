@@ -22,7 +22,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 04 | [Ingestion Pipeline](./specs/04-ingestion-pipeline.md)                                  | Shipped  | 04a, 04b               | Shipped 2026-04-22 via PR #5. Rails ingest + whatsapp-cloud container + dev-webhook + LocalStack SQS, full e2e green. |
 | 05 | [Outbound Dispatch](./specs/05-outbound-dispatch.md)                                    | Shipped  | 05a, 05b, 05c, 05d     | Shipped 2026-05-08 across 4 plans (service/job, container send, reply form, status display). |
 | 06 | [Assignment, Transfer & Agent Workspace](./specs/06-assignment-transfer-workspace.md)   | Shipped  | 06a, 06b, 06c, 06d, 06e, 06f | Shipped 2026-05-15 across six plans (authz/auto-assign, transfer, workspace, timeline, admin, realtime). |
-| 07 | [Flow Engine](./specs/07-flow-engine.md)                                                | Planned  | 07a, 07b, 07c, 07d     | Spec sliced into four plans (migrations/models, engine services, ingestion integration, dashboard). |
+| 07 | [Flow Engine](./specs/07-flow-engine.md)                                                | In Progress | 07a, 07b, 07c, 07d  | Spec sliced into four plans (migrations/models, engine services, ingestion integration, dashboard). 07a build underway. |
 
 ## Plans
 
@@ -44,7 +44,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 06d | [Conversation timeline + content-type rendering](./plans/06d-2026-05-11-conversation-timeline.md) | 06 | Shipped | [#14](https://github.com/falechat/falecom/pull/14) (bdf64fa) | 2026-05-15 |
 | 06e | [Admin UI + Contact management](./plans/06e-2026-05-11-admin-and-contact-mgmt.md)        | 06   | Shipped  | [#15](https://github.com/falechat/falecom/pull/15) (8286a0a) | 2026-05-15 |
 | 06f | [Real-time scoping (Solid Cable)](./plans/06f-2026-05-11-realtime-scoping.md)            | 06   | Shipped  | [#16](https://github.com/falechat/falecom/pull/16) (3eb3486) | 2026-05-15 |
-| 07a | [Flow migrations + models](./plans/07a-2026-05-15-flow-migrations-models.md)             | 07   | Draft    | —                                                           | —          |
+| 07a | [Flow migrations + models](./plans/07a-2026-05-15-flow-migrations-models.md)             | 07   | In Progress | —                                                        | —          |
 | 07b | [Flow engine services](./plans/07b-2026-05-15-flow-engine-services.md)                   | 07   | Draft    | —                                                           | —          |
 | 07c | [Flow ingestion integration + auto-assign depth](./plans/07c-2026-05-15-flow-ingestion-integration.md) | 07 | Draft | — | — |
 | 07d | [Flow management dashboard](./plans/07d-2026-05-15-flow-management-dashboard.md)         | 07   | Draft    | —                                                           | —          |

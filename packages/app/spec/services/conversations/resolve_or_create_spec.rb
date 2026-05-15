@@ -21,7 +21,8 @@ RSpec.describe Conversations::ResolveOrCreate do
       end
 
       it "creates it with status bot when the channel has an active_flow_id" do
-        channel.update!(active_flow_id: 1) # placeholder — FK not enforced until Spec 07 migration
+        flow = Flow.create!(name: "f")
+        channel.update!(active_flow_id: flow.id)
         conversation, _created = described_class.call(channel, contact, contact_channel)
         expect(conversation.status).to eq("bot")
       end
