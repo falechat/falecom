@@ -1,0 +1,23 @@
+<div class="modal" data-controller="modal" role="dialog">
+  <%= form_with url: dashboard_conversation_transfer_path(@conversation), method: :post do |f| %>
+    <h2 class="text-lg font-semibold mb-3">Transfer conversation</h2>
+
+    <label for="transfer_to_team_id">Team</label>
+    <%= f.select "transfer[to_team_id]", teams.map { |t| [t.name, t.id] }, {include_blank: "— keep current —"},
+          class: "w-full mb-2",
+          data: {action: "change->modal#refreshUsers",
+                 "modal-users-url": new_dashboard_conversation_transfer_path(@conversation, format: :json)} %>
+
+    <label for="transfer_to_user_id">Agent</label>
+    <%= f.select "transfer[to_user_id]", [], {include_blank: "— unassigned —"},
+          class: "w-full mb-2", data: {modal_target: "userSelect"} %>
+
+    <label for="transfer_note">Note (optional)</label>
+    <%= f.text_area "transfer[note]", rows: 3, class: "w-full mb-3" %>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" data-action="modal#close" class="btn-secondary">Cancel</button>
+      <%= f.submit "Transfer", class: "btn-primary" %>
+    </div>
+  <% end %>
+</div>

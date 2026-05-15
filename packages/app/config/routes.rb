@@ -12,6 +12,9 @@ Rails.application.routes.draw do
   namespace :dashboard do
     resources :conversations, only: [:index, :show] do
       resources :messages, only: [:create]
+      resource :transfer, only: [:new, :create], module: :conversations
+      resource :resolution, only: [:create], module: :conversations
+      resource :pickup, only: [:create], module: :conversations
     end
     patch "users/availability", to: "users#update_availability", as: :user_availability
   end
