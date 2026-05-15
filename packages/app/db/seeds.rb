@@ -55,6 +55,8 @@ puts "== Seeding channels =="
 whatsapp = Channel.find_or_create_by!(channel_type: "whatsapp_cloud", identifier: "5511999999999") do |c|
   c.name = "WhatsApp Vendas"
   c.credentials = {}
+  c.auto_assign = true
+  c.auto_assign_config = {"strategy" => "round_robin"}
 end
 
 zapi = Channel.find_or_create_by!(channel_type: "zapi", identifier: "5511888888888") do |c|
