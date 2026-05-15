@@ -1,6 +1,7 @@
 module Dashboard
   class FlowsController < ApplicationController
     include RequireAdmin
+
     before_action :load_flow, only: [:show, :edit, :update, :destroy, :set_root]
 
     def index

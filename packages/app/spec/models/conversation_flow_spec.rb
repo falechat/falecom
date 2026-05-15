@@ -3,9 +3,9 @@ require "rails_helper"
 RSpec.describe ConversationFlow, type: :model do
   let(:channel) { Channel.create!(name: "c", channel_type: "whatsapp_cloud", identifier: "c-1") }
   let(:contact) { Contact.create!(name: "x") }
-  let(:cc)      { ContactChannel.create!(contact: contact, channel: channel, source_id: "s") }
-  let(:conv)    { Conversation.create!(channel: channel, contact: contact, contact_channel: cc, display_id: 1) }
-  let(:flow)    { Flow.create!(name: "f") }
+  let(:cc) { ContactChannel.create!(contact: contact, channel: channel, source_id: "s") }
+  let(:conv) { Conversation.create!(channel: channel, contact: contact, contact_channel: cc, display_id: 1) }
+  let(:flow) { Flow.create!(name: "f") }
 
   it "validates status enum" do
     expect { ConversationFlow.create!(conversation: conv, flow: flow, status: "lol") }

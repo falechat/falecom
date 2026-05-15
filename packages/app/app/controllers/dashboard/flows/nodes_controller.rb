@@ -2,6 +2,7 @@ module Dashboard
   module Flows
     class NodesController < ApplicationController
       include RequireAdmin
+
       before_action :load_flow
       before_action :load_node, only: [:update, :destroy]
 
