@@ -2,7 +2,7 @@
       class: "block px-3 py-2 border-b hover:bg-gray-50 #{"row-active bg-blue-50" if @active} #{"row-unread font-semibold" if @unread}",
       data: {turbo_frame: "_top"} do %>
   <div class="flex justify-between items-baseline">
-    <div class="font-medium truncate"><%= @conversation.contact&.name || "Unknown" %></div>
+    <div class="font-medium truncate"><%= @conversation.contact&.name || "Unknown" %> <span class="text-xs text-gray-400">#<%= @conversation.display_id %></span></div>
     <div class="text-xs text-gray-500"><%= time_ago %></div>
   </div>
   <div class="text-sm text-gray-600 truncate"><%= preview %></div>
