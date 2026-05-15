@@ -81,9 +81,7 @@ module Assignments
     end
 
     def broadcast_assignment
-      # 06f wires the real Turbo Stream targets. Kept as a placeholder so the
-      # call site is stable.
-      nil
+      Conversations::Broadcasts.assigned(@conversation)
     end
   end
 end
