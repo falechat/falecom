@@ -32,10 +32,10 @@ RSpec.describe Conversations::Scope do
   let(:agent) { make_user.tap { |u| TeamMember.create!(user: u, team: team_a) } }
   let(:admin) { make_user(role: "admin") }
 
-  let!(:mine)       { make_conv(channel: channel_a, assignee: agent, status: "assigned", team: team_a) }
+  let!(:mine) { make_conv(channel: channel_a, assignee: agent, status: "assigned", team: team_a) }
   let!(:unassigned) { make_conv(channel: channel_a, assignee: nil, status: "queued") }
-  let!(:teammates)  { make_conv(channel: channel_a, team: team_a, status: "assigned") }
-  let!(:foreign)    { make_conv(channel: channel_b, status: "queued", team: team_b) }
+  let!(:teammates) { make_conv(channel: channel_a, team: team_a, status: "assigned") }
+  let!(:foreign) { make_conv(channel: channel_b, status: "queued", team: team_b) }
 
   it "view=mine returns only assigned-to-me" do
     expect(described_class.call(user: agent, params: {view: "mine"})).to contain_exactly(mine)

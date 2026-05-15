@@ -18,10 +18,10 @@ module Conversations
     def view_scope
       case @params[:view].to_s
       when "unassigned" then ::Conversation.where(assignee_id: nil, status: "queued")
-      when "team"       then ::Conversation.where(team_id: user_team_ids)
-      when "channel"    then ::Conversation.where(channel_id: @params[:channel_id])
-      when "all"        then @user.admin? ? ::Conversation.all : ::Conversation.where(assignee_id: @user.id)
-      else                   ::Conversation.where(assignee_id: @user.id) # mine
+      when "team" then ::Conversation.where(team_id: user_team_ids)
+      when "channel" then ::Conversation.where(channel_id: @params[:channel_id])
+      when "all" then @user.admin? ? ::Conversation.all : ::Conversation.where(assignee_id: @user.id)
+      else ::Conversation.where(assignee_id: @user.id) # mine
       end
     end
 

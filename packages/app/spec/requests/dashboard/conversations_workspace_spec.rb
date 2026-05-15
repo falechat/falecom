@@ -28,8 +28,8 @@ RSpec.describe "Dashboard workspace", type: :request do
   let(:channel_a) { make_channel(team: team) }
   let(:channel_b) { make_channel(team: Team.create!(name: "F-#{SecureRandom.hex(2)}")) }
   let(:agent) { make_user.tap { |u| TeamMember.create!(user: u, team: team) } }
-  let!(:mine)    { make_conv(channel: channel_a, assignee: agent, status: "assigned") }
-  let!(:queued)  { make_conv(channel: channel_a, status: "queued") }
+  let!(:mine) { make_conv(channel: channel_a, assignee: agent, status: "assigned") }
+  let!(:queued) { make_conv(channel: channel_a, status: "queued") }
   let!(:foreign) { make_conv(channel: channel_b, status: "queued") }
 
   before { sign_in(agent) }
