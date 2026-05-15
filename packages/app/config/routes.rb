@@ -9,13 +9,22 @@ Rails.application.routes.draw do
     post "ingest", to: "ingest#create"
   end
 
+  namespace :admin do
+    resources :channels
+    resources :teams
+    resources :users
+    root to: "channels#index"
+  end
+
   namespace :dashboard do
     resources :conversations, only: [:index, :show] do
       resources :messages, only: [:create]
       resource :transfer, only: [:new, :create], module: :conversations
       resource :resolution, only: [:create], module: :conversations
       resource :pickup, only: [:create], module: :conversations
+      resource :note, only: [:create], module: :conversations
     end
+    resources :contacts
     patch "users/availability", to: "users#update_availability", as: :user_availability
   end
 

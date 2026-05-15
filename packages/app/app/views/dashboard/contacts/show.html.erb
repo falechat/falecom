@@ -1,0 +1,23 @@
+<h1 class="text-xl font-semibold mb-4"><%= @contact.name %></h1>
+<%= form_with model: @contact, url: dashboard_contact_path(@contact), method: :patch do |f| %>
+  <div class="grid grid-cols-2 gap-3">
+    <%= f.label :name %>         <%= f.text_field :name, class: "input" %>
+    <%= f.label :phone_number %> <%= f.text_field :phone_number, class: "input" %>
+    <%= f.label :email %>        <%= f.email_field :email, class: "input" %>
+  </div>
+
+  <h3 class="mt-4 font-semibold">Attributes</h3>
+  <div data-controller="kv-attrs">
+    <% (@contact.additional_attributes || {}).each do |k, v| %>
+      <div class="flex gap-2 mb-1" data-kv-attrs-target="row">
+        <span class="w-32"><%= k %></span>
+        <%= text_field_tag "contact[additional_attributes][#{k}]", v, class: "input" %>
+        <button type="button" data-action="kv-attrs#remove" data-key="<%= k %>">Remove</button>
+      </div>
+    <% end %>
+    <div data-kv-attrs-target="newRows"></div>
+    <button type="button" data-action="kv-attrs#add" class="text-sm text-blue-600">+ Add attribute</button>
+  </div>
+
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>

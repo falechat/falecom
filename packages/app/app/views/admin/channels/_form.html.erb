@@ -1,0 +1,17 @@
+<%= form_with model: @channel, url: @channel.persisted? ? admin_channel_path(@channel) : admin_channels_path do |f| %>
+  <% if @channel.errors.any? %>
+    <ul class="text-red-600 mb-3"><% @channel.errors.full_messages.each do |m| %><li><%= m %></li><% end %></ul>
+  <% end %>
+  <div class="grid grid-cols-2 gap-3">
+    <%= f.label :name %>          <%= f.text_field :name, class: "input" %>
+    <%= f.label :channel_type %>  <%= f.select :channel_type, %w[whatsapp_cloud zapi evolution instagram telegram] %>
+    <%= f.label :identifier %>    <%= f.text_field :identifier, class: "input" %>
+    <%= f.label :active %>        <%= f.check_box :active %>
+    <%= f.label :auto_assign %>   <%= f.check_box :auto_assign %>
+  </div>
+  <%= f.label :credentials, "Credentials (JSON)" %>
+  <%= f.text_area :credentials, value: (@channel.credentials.is_a?(Hash) ? @channel.credentials.to_json : @channel.credentials.to_s), rows: 5, class: "input w-full font-mono" %>
+  <%= f.label :auto_assign_config, "Auto-Assign Config (JSON)" %>
+  <%= f.text_area :auto_assign_config, value: (@channel.auto_assign_config.is_a?(Hash) ? @channel.auto_assign_config.to_json : @channel.auto_assign_config.to_s), rows: 3, class: "input w-full font-mono" %>
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>

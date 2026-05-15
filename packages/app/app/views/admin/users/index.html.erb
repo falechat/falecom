@@ -1,0 +1,17 @@
+<h1 class="text-xl font-semibold mb-4">Users</h1>
+<%= link_to "New user", new_admin_user_path, class: "btn-primary inline-block mb-3" %>
+<table class="w-full text-sm">
+  <thead><tr class="border-b text-left"><th>Name</th><th>Email</th><th>Role</th><th>Availability</th><th>Teams</th><th></th></tr></thead>
+  <tbody>
+    <% @users.each do |u| %>
+      <tr class="border-b">
+        <td><%= u.name %></td>
+        <td><%= u.email_address %></td>
+        <td><%= u.role %></td>
+        <td><%= render AvailabilityBadgeComponent.new(user: u) %></td>
+        <td><%= u.teams.map(&:name).join(", ") %></td>
+        <td class="text-right"><%= link_to "Edit", edit_admin_user_path(u) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

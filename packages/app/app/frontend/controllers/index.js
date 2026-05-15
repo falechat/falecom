@@ -3,8 +3,7 @@
 // `<name>_controller.js` convention.
 import { application } from "./application";
 
-// Example pattern — uncomment to register the JR controllers you copy:
-// import NavbarController from "./navbar_controller";
-// application.register("navbar", NavbarController);
+import KvAttrsController from "./kv_attrs_controller";
+application.register("kv-attrs", KvAttrsController);
 
 export { application };
