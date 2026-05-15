@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_145626) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_145645) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -101,6 +101,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145626) do
     t.string "name"
     t.string "phone_number"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "conversation_flows", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "current_node_id"
+    t.bigint "flow_id", null: false
+    t.datetime "last_interaction_at"
+    t.datetime "started_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.jsonb "state", default: {}, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_conversation_flows_on_conversation_id"
+    t.index ["conversation_id"], name: "index_conversation_flows_one_active_per_conversation", unique: true, where: "((status)::text = 'active'::text)"
+    t.index ["current_node_id"], name: "index_conversation_flows_on_current_node_id"
+    t.index ["flow_id"], name: "index_conversation_flows_on_flow_id"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'completed'::character varying, 'abandoned'::character varying]::text[])", name: "conversation_flows_status_check"
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -383,6 +400,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145626) do
   add_foreign_key "channels", "flows", column: "active_flow_id"
   add_foreign_key "contact_channels", "channels"
   add_foreign_key "contact_channels", "contacts"
+  add_foreign_key "conversation_flows", "conversations"
+  add_foreign_key "conversation_flows", "flow_nodes", column: "current_node_id"
+  add_foreign_key "conversation_flows", "flows"
   add_foreign_key "conversations", "channels"
   add_foreign_key "conversations", "contact_channels"
   add_foreign_key "conversations", "contacts"
