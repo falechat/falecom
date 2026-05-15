@@ -58,7 +58,7 @@ module Flows
 
     def enqueue_auto_assign
       return unless @conversation.channel.auto_assign?
-      AutoAssignJob.perform_later(@conversation.id)
+      AutoAssignJob.perform_later(@conversation.id, depth: 0)
     end
   end
 end
