@@ -1,0 +1,12 @@
+<h1 class="text-xl font-semibold"><%= @flow.name %></h1>
+<%= render "form" %>
+
+<h2 class="text-lg mt-6 mb-2">Nodes (<%= @nodes.size %>)</h2>
+<ol class="space-y-2">
+  <% @nodes.each do |node| %>
+    <%= render "dashboard/flows/nodes/node_card", node: node, flow: @flow %>
+  <% end %>
+</ol>
+
+<h3 class="mt-4">Add node</h3>
+<%= render "dashboard/flows/nodes/form", node: FlowNode.new(flow: @flow, node_type: "message"), flow: @flow %>

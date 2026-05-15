@@ -1,0 +1,15 @@
+<h1 class="text-xl font-semibold mb-3">Flows</h1>
+<%= link_to "New flow", new_dashboard_flow_path, class: "btn-primary inline-block mb-3" %>
+<table class="w-full text-sm">
+  <thead><tr class="border-b text-left"><th>Name</th><th>Active</th><th>Inactivity</th><th></th></tr></thead>
+  <tbody>
+    <% @flows.each do |f| %>
+      <tr class="border-b">
+        <td><%= f.name %></td>
+        <td><%= f.is_active? ? "yes" : "—" %></td>
+        <td><%= f.inactivity_threshold_hours %>h</td>
+        <td class="text-right"><%= link_to "Edit", dashboard_flow_path(f) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
