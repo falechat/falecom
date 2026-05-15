@@ -40,6 +40,12 @@ RSpec.describe Dispatch::Outbound do
     expect(Message.last.reply_to_external_id).to eq("wamid.x")
   end
 
+  it "accepts a symbol actor (e.g. :bot) and stores sender as nil" do
+    described_class.call(conversation: conversation, content: "hi", actor: :bot)
+    msg = Message.last
+    expect(msg).to have_attributes(direction: "outbound", status: "pending", sender_id: nil, sender_type: nil)
+  end
+
   def enqueued_jobs_for(klass)
     ActiveJob::Base.queue_adapter.enqueued_jobs.select { |j| j[:job] == klass }
   end
