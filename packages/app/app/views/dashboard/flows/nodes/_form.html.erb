@@ -1,0 +1,14 @@
+<%= form_with model: node, url: node.persisted? ? dashboard_flow_node_path(flow, node) : dashboard_flow_nodes_path(flow), method: node.persisted? ? :patch : :post, data: {controller: "node-type-swap"} do |f| %>
+  <div>
+    <%= f.label :node_type %>
+    <%= f.select :node_type, %w[message menu collect handoff branch], {selected: node.node_type || "message"}, data: {node_type_swap_target: "select", action: "change->node-type-swap#swap"} %>
+  </div>
+
+  <% %w[message menu collect handoff branch].each do |type| %>
+    <div data-node-type-swap-target="fields" data-type="<%= type %>" style="<%= (node.node_type || "message") == type ? "" : "display:none" %>">
+      <%= render "dashboard/flows/nodes/fields_#{type}", node: node, flow: flow %>
+    </div>
+  <% end %>
+
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>

@@ -26,6 +26,15 @@ Rails.application.routes.draw do
     end
     resources :contacts
     patch "users/availability", to: "users#update_availability", as: :user_availability
+
+    resources :flows do
+      member { patch :set_root }
+      resources :nodes, controller: "flows/nodes"
+    end
+
+    resources :channels, only: [] do
+      resource :flow_activation, only: [:create, :destroy], controller: "channels/flow_activations"
+    end
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

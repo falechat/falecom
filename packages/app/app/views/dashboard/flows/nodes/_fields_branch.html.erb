@@ -1,0 +1,2 @@
+<%= text_area_tag "flow_node[content]", (node.type_branch? && node.content.present? ? node.content : {"conditions" => []}).to_json, rows: 6, class: "input w-full font-mono", disabled: !(node.node_type == "branch") %>
+<p class="text-xs text-gray-500">JSON: { "conditions": [{ "attribute": "...", "operator": "eq", "value": "...", "next_node_id": 1 }] }</p>

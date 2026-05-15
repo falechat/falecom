@@ -1,0 +1,16 @@
+<li class="border rounded p-3" id="<%= dom_id(node) %>">
+  <div class="flex justify-between">
+    <div>
+      <span class="text-xs uppercase font-semibold"><%= node.node_type %></span>
+      <span class="text-sm ml-2"><%= node.content["text"] || node.content.to_json.truncate(80) %></span>
+    </div>
+    <div class="text-sm space-x-2">
+      <% if flow.root_node_id == node.id %>
+        <span class="text-blue-600">root</span>
+      <% else %>
+        <%= button_to "Set as root", set_root_dashboard_flow_path(flow, node_id: node.id), method: :patch, class: "text-xs underline" %>
+      <% end %>
+      <%= button_to "Delete", dashboard_flow_node_path(flow, node), method: :delete, data: {turbo_confirm: "Delete?"}, class: "text-xs text-red-600" %>
+    </div>
+  </div>
+</li>

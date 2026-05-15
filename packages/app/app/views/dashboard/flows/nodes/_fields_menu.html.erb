@@ -1,0 +1,2 @@
+<%= text_area_tag "flow_node[content]", (node.type_menu? && node.content.present? ? node.content : {"text" => "", "options" => []}).to_json, rows: 8, class: "input w-full font-mono", disabled: !(node.node_type == "menu") %>
+<p class="text-xs text-gray-500">JSON: { "text": "...", "options": [{ "key": "1", "label": "Vendas", "next_node_id": 42 }] }</p>

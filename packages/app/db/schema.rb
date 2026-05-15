@@ -140,7 +140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145645) do
     t.index ["contact_channel_id"], name: "index_conversations_open_per_contact_channel", unique: true, where: "((status)::text <> 'resolved'::text)"
     t.index ["contact_id"], name: "index_conversations_on_contact_id"
     t.index ["display_id"], name: "index_conversations_on_display_id", unique: true
-    t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: { last_activity_at: :desc }
+    t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: {last_activity_at: :desc}
     t.index ["team_id", "status"], name: "index_conversations_on_team_id_and_status"
     t.index ["team_id"], name: "index_conversations_on_team_id"
     t.check_constraint "status::text = ANY (ARRAY['bot'::character varying::text, 'queued'::character varying::text, 'assigned'::character varying::text, 'resolved'::character varying::text])", name: "conversations_status_check"
@@ -154,10 +154,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145645) do
     t.jsonb "payload", default: {}, null: false
     t.bigint "subject_id", null: false
     t.string "subject_type", null: false
-    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: { created_at: :desc }
+    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: {created_at: :desc}
     t.index ["created_at"], name: "index_events_on_created_at", order: :desc
-    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: { created_at: :desc }
-    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: { created_at: :desc }
+    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: {created_at: :desc}
+    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: {created_at: :desc}
   end
 
   create_table "flow_nodes", force: :cascade do |t|

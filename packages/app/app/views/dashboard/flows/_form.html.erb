@@ -1,0 +1,12 @@
+<%= form_with model: @flow, url: @flow.persisted? ? dashboard_flow_path(@flow) : dashboard_flows_path do |f| %>
+  <% if @flow.errors.any? %>
+    <ul class="text-red-600 mb-3">
+      <% @flow.errors.full_messages.each do |m| %><li><%= m %></li><% end %>
+    </ul>
+  <% end %>
+  <div><%= f.label :name %> <%= f.text_field :name, class: "input w-full" %></div>
+  <div><%= f.label :description %> <%= f.text_area :description, class: "input w-full", rows: 3 %></div>
+  <div><%= f.label :inactivity_threshold_hours %> <%= f.number_field :inactivity_threshold_hours, class: "input w-32" %></div>
+  <div><%= f.check_box :is_active %> <%= f.label :is_active %></div>
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>
