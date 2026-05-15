@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_145645) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -77,8 +77,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["active"], name: "index_channels_on_active"
+    t.index ["active_flow_id"], name: "index_channels_on_active_flow_id"
     t.index ["channel_type", "identifier"], name: "index_channels_on_channel_type_and_identifier", unique: true
-    t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying, 'zapi'::character varying, 'evolution'::character varying, 'instagram'::character varying, 'telegram'::character varying]::text[])", name: "channels_channel_type_check"
+    t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying::text, 'zapi'::character varying::text, 'evolution'::character varying::text, 'instagram'::character varying::text, 'telegram'::character varying::text])", name: "channels_channel_type_check"
   end
 
   create_table "contact_channels", force: :cascade do |t|
@@ -102,6 +103,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "conversation_flows", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "current_node_id"
+    t.bigint "flow_id", null: false
+    t.datetime "last_interaction_at"
+    t.datetime "started_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.jsonb "state", default: {}, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_conversation_flows_on_conversation_id"
+    t.index ["conversation_id"], name: "index_conversation_flows_one_active_per_conversation", unique: true, where: "((status)::text = 'active'::text)"
+    t.index ["current_node_id"], name: "index_conversation_flows_on_current_node_id"
+    t.index ["flow_id"], name: "index_conversation_flows_on_flow_id"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'completed'::character varying, 'abandoned'::character varying]::text[])", name: "conversation_flows_status_check"
+  end
+
   create_table "conversations", force: :cascade do |t|
     t.jsonb "additional_attributes", default: {}, null: false
     t.bigint "assignee_id"
@@ -122,10 +140,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.index ["contact_channel_id"], name: "index_conversations_open_per_contact_channel", unique: true, where: "((status)::text <> 'resolved'::text)"
     t.index ["contact_id"], name: "index_conversations_on_contact_id"
     t.index ["display_id"], name: "index_conversations_on_display_id", unique: true
-    t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: {last_activity_at: :desc}
+    t.index ["status", "last_activity_at"], name: "index_conversations_on_status_and_last_activity_at", order: { last_activity_at: :desc }
     t.index ["team_id", "status"], name: "index_conversations_on_team_id_and_status"
     t.index ["team_id"], name: "index_conversations_on_team_id"
-    t.check_constraint "status::text = ANY (ARRAY['bot'::character varying, 'queued'::character varying, 'assigned'::character varying, 'resolved'::character varying]::text[])", name: "conversations_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['bot'::character varying::text, 'queued'::character varying::text, 'assigned'::character varying::text, 'resolved'::character varying::text])", name: "conversations_status_check"
   end
 
   create_table "events", force: :cascade do |t|
@@ -136,10 +154,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.jsonb "payload", default: {}, null: false
     t.bigint "subject_id", null: false
     t.string "subject_type", null: false
-    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: {created_at: :desc}
+    t.index ["actor_type", "actor_id", "created_at"], name: "index_events_on_actor_type_and_actor_id_and_created_at", order: { created_at: :desc }
     t.index ["created_at"], name: "index_events_on_created_at", order: :desc
-    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: {created_at: :desc}
-    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: {created_at: :desc}
+    t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: { created_at: :desc }
+    t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: { created_at: :desc }
+  end
+
+  create_table "flow_nodes", force: :cascade do |t|
+    t.jsonb "content", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.bigint "flow_id", null: false
+    t.bigint "next_node_id"
+    t.string "node_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["flow_id"], name: "index_flow_nodes_on_flow_id"
+    t.index ["next_node_id"], name: "index_flow_nodes_on_next_node_id"
+    t.check_constraint "node_type::text = ANY (ARRAY['message'::character varying, 'menu'::character varying, 'collect'::character varying, 'handoff'::character varying, 'branch'::character varying]::text[])", name: "flow_nodes_node_type_check"
+  end
+
+  create_table "flows", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "inactivity_threshold_hours", default: 24, null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.bigint "root_node_id"
+    t.bigint "short_greeting_node_id"
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_flows_on_is_active"
+    t.index ["root_node_id"], name: "index_flows_on_root_node_id"
+    t.index ["short_greeting_node_id"], name: "index_flows_on_short_greeting_node_id"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -164,9 +208,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
-    t.check_constraint "content_type::text = ANY (ARRAY['text'::character varying, 'image'::character varying, 'audio'::character varying, 'video'::character varying, 'document'::character varying, 'location'::character varying, 'contact_card'::character varying, 'input_select'::character varying, 'button_reply'::character varying, 'template'::character varying]::text[])", name: "messages_content_type_check"
-    t.check_constraint "direction::text = ANY (ARRAY['inbound'::character varying, 'outbound'::character varying]::text[])", name: "messages_direction_check"
-    t.check_constraint "status::text = ANY (ARRAY['received'::character varying, 'pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'read'::character varying, 'failed'::character varying]::text[])", name: "messages_status_check"
+    t.check_constraint "content_type::text = ANY (ARRAY['text'::character varying::text, 'image'::character varying::text, 'audio'::character varying::text, 'video'::character varying::text, 'document'::character varying::text, 'location'::character varying::text, 'contact_card'::character varying::text, 'input_select'::character varying::text, 'button_reply'::character varying::text, 'template'::character varying::text])", name: "messages_content_type_check"
+    t.check_constraint "direction::text = ANY (ARRAY['inbound'::character varying::text, 'outbound'::character varying::text])", name: "messages_direction_check"
+    t.check_constraint "status::text = ANY (ARRAY['received'::character varying::text, 'pending'::character varying::text, 'sent'::character varying::text, 'delivered'::character varying::text, 'read'::character varying::text, 'failed'::character varying::text])", name: "messages_status_check"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -345,21 +389,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_165955) do
     t.string "role", null: false
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
-    t.check_constraint "availability::text = ANY (ARRAY['online'::character varying, 'busy'::character varying, 'offline'::character varying]::text[])", name: "users_availability_check"
-    t.check_constraint "role::text = ANY (ARRAY['admin'::character varying, 'supervisor'::character varying, 'agent'::character varying]::text[])", name: "users_role_check"
+    t.check_constraint "availability::text = ANY (ARRAY['online'::character varying::text, 'busy'::character varying::text, 'offline'::character varying::text])", name: "users_availability_check"
+    t.check_constraint "role::text = ANY (ARRAY['admin'::character varying::text, 'supervisor'::character varying::text, 'agent'::character varying::text])", name: "users_role_check"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "channel_teams", "channels"
   add_foreign_key "channel_teams", "teams"
+  add_foreign_key "channels", "flows", column: "active_flow_id"
   add_foreign_key "contact_channels", "channels"
   add_foreign_key "contact_channels", "contacts"
+  add_foreign_key "conversation_flows", "conversations"
+  add_foreign_key "conversation_flows", "flow_nodes", column: "current_node_id"
+  add_foreign_key "conversation_flows", "flows"
   add_foreign_key "conversations", "channels"
   add_foreign_key "conversations", "contact_channels"
   add_foreign_key "conversations", "contacts"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users", column: "assignee_id"
+  add_foreign_key "flow_nodes", "flow_nodes", column: "next_node_id"
+  add_foreign_key "flow_nodes", "flows"
+  add_foreign_key "flows", "flow_nodes", column: "root_node_id"
+  add_foreign_key "flows", "flow_nodes", column: "short_greeting_node_id"
   add_foreign_key "messages", "channels"
   add_foreign_key "messages", "conversations"
   add_foreign_key "sessions", "users"

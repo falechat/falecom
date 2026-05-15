@@ -97,6 +97,13 @@ RSpec.describe Conversation, type: :model do
     }.to raise_error(ActiveRecord::RecordNotUnique)
   end
 
+  it "exposes the active conversation_flow" do
+    conv = Conversation.create!(valid_attrs)
+    flow = Flow.create!(name: "f")
+    cf = ConversationFlow.create!(conversation: conv, flow: flow, status: "active")
+    expect(conv.reload.conversation_flow).to eq(cf)
+  end
+
   it "rejects invalid status at the DB level via check constraint" do
     conv = Conversation.create!(valid_attrs)
     expect {

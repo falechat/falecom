@@ -17,4 +17,6 @@ class Channel < ApplicationRecord
   has_many :contact_channels, dependent: :destroy
   has_many :conversations, dependent: :restrict_with_error
   has_many :messages, dependent: :restrict_with_error
+
+  belongs_to :active_flow, class_name: "Flow", optional: true
 end

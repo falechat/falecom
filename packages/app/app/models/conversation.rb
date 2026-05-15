@@ -13,6 +13,8 @@ class Conversation < ApplicationRecord
   belongs_to :team, optional: true
 
   has_many :messages, dependent: :destroy
+  has_many :conversation_flows, dependent: :destroy
+  has_one :conversation_flow, -> { where(status: "active") }, inverse_of: :conversation
 
   validates :display_id, presence: true
 end
