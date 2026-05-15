@@ -16,7 +16,7 @@ module Conversations
           .where.not(status: "resolved")
           .order(created_at: :desc)
           .first
-        return open if open
+        return [open, false] if open
 
         conversation = channel.conversations.create!(
           contact: contact,
@@ -32,7 +32,7 @@ module Conversations
           actor: :system
         )
 
-        conversation
+        [conversation, true]
       end
     end
 
