@@ -1,0 +1,20 @@
+<h1 class="text-xl font-semibold mb-4">Channels</h1>
+<%= link_to "New channel", new_admin_channel_path, class: "btn-primary mb-3 inline-block" %>
+<table class="w-full text-sm">
+  <thead><tr class="text-left border-b"><th>Name</th><th>Type</th><th>Identifier</th><th>Active</th><th>Auto-Assign</th><th></th></tr></thead>
+  <tbody>
+    <% @channels.each do |c| %>
+      <tr class="border-b">
+        <td><%= c.name %></td>
+        <td><%= c.channel_type %></td>
+        <td><code><%= c.identifier %></code></td>
+        <td><%= c.active? ? "yes" : "no" %></td>
+        <td><%= c.auto_assign? ? (c.auto_assign_config.is_a?(Hash) ? c.auto_assign_config["strategy"] : "-") : "-" %></td>
+        <td class="text-right">
+          <%= link_to "Edit", edit_admin_channel_path(c) %>
+          <%= button_to "Deactivate", admin_channel_path(c), method: :delete, class: "text-red-600", data: {turbo_confirm: "Sure?"} %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
