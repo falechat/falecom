@@ -37,21 +37,8 @@ module Ingestion
       end
     end
 
-    def self.broadcast(conversation, message)
-      Turbo::StreamsChannel.broadcast_append_to(
-        "conversation:#{conversation.id}",
-        target: "messages",
-        partial: "dashboard/messages/message",
-        locals: {message: message}
-      )
-    rescue => e
-      # Broadcast failure must not roll back ingestion. Log only.
-      Rails.logger.warn(
-        event: "ingestion_broadcast_failed",
-        conversation_id: conversation.id,
-        message_id: message.id,
-        error: e.message
-      )
+    def self.broadcast(_conversation, message)
+      Conversations::Broadcasts.message_appended(message)
     end
 
     private_class_method :broadcast

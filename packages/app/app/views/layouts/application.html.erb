@@ -14,6 +14,12 @@
   </head>
 
   <body class="h-full bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <% if Current.user %>
+      <%= turbo_stream_from "conversations:user:#{Current.user.id}" %>
+      <% Current.user.teams.joins(:channel_teams).pluck("channel_teams.channel_id").uniq.each do |cid| %>
+        <%= turbo_stream_from "conversations:channel:#{cid}" %>
+      <% end %>
+    <% end %>
     <div class="flex min-h-full">
       <% if authenticated? %>
         <%= render Ui::SidebarComponent.new(
