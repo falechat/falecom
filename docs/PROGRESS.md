@@ -21,7 +21,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 03 | [`falecom_channel` Gem](./specs/03-falecom-channel-gem.md)                              | Shipped  | 03                     | Shipped 2026-04-21 via PR #4. Gem provides Payload schemas, SqsAdapter, Consumer, HMAC clients, SendServer, Logging. |
 | 04 | [Ingestion Pipeline](./specs/04-ingestion-pipeline.md)                                  | Shipped  | 04a, 04b               | Shipped 2026-04-22 via PR #5. Rails ingest + whatsapp-cloud container + dev-webhook + LocalStack SQS, full e2e green. |
 | 05 | [Outbound Dispatch](./specs/05-outbound-dispatch.md)                                    | Shipped  | 05a, 05b, 05c, 05d     | Shipped 2026-05-08 across 4 plans (service/job, container send, reply form, status display). |
-| 06 | [Assignment, Transfer & Agent Workspace](./specs/06-assignment-transfer-workspace.md)   | Planned  | 06a, 06b, 06c, 06d, 06e, 06f | Spec sliced into six plans (authz/auto-assign, transfer, workspace, timeline, admin, realtime). |
+| 06 | [Assignment, Transfer & Agent Workspace](./specs/06-assignment-transfer-workspace.md)   | In Progress | 06a, 06b, 06c, 06d, 06e, 06f | Spec sliced into six plans (authz/auto-assign, transfer, workspace, timeline, admin, realtime). |
 | 07 | [Flow Engine](./specs/07-flow-engine.md)                                                | Draft    | —                      | Depends on 04 + 06.                                                                             |
 
 ## Plans
@@ -38,7 +38,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 05b | [WhatsApp Cloud /send Wiring](./plans/05b-2026-05-08-whatsapp-cloud-send.md)             | 05   | Shipped  | [#8](https://github.com/falechat/falecom/pull/8) (1fafd8d)  | 2026-05-08 |
 | 05c | [Reply Form Dashboard](./plans/05c-2026-05-08-reply-form-dashboard.md)                   | 05   | Shipped  | direct-to-main (4bde678)                                    | 2026-05-08 |
 | 05d | [Status Display + Flow](./plans/05d-2026-05-08-status-display-flow.md)                   | 05   | Shipped  | direct-to-main (46c1cb7)                                    | 2026-05-08 |
-| 06a | [Authorization + Auto-Assign + Availability](./plans/06a-2026-05-11-authz-autoassign-availability.md) | 06 | Draft | — | — |
+| 06a | [Authorization + Auto-Assign + Availability](./plans/06a-2026-05-11-authz-autoassign-availability.md) | 06 | In Progress | — | — |
 | 06b | [Transfer + Resolve](./plans/06b-2026-05-11-transfer-resolve.md)                         | 06   | Draft    | —                                                           | —          |
 | 06c | [Workspace views + 3-pane layout](./plans/06c-2026-05-11-workspace-views.md)             | 06   | Draft    | —                                                           | —          |
 | 06d | [Conversation timeline + content-type rendering](./plans/06d-2026-05-11-conversation-timeline.md) | 06 | Draft | — | — |

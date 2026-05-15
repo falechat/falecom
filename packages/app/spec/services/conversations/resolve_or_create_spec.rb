@@ -12,7 +12,7 @@ RSpec.describe Conversations::ResolveOrCreate do
   describe ".call" do
     context "no conversations exist for this contact_channel" do
       it "creates a new conversation with status queued when the channel has no active flow" do
-        conversation = described_class.call(channel, contact, contact_channel)
+        conversation, _created = described_class.call(channel, contact, contact_channel)
 
         expect(conversation).to be_persisted
         expect(conversation.status).to eq("queued")
@@ -22,7 +22,7 @@ RSpec.describe Conversations::ResolveOrCreate do
 
       it "creates it with status bot when the channel has an active_flow_id" do
         channel.update!(active_flow_id: 1) # placeholder — FK not enforced until Spec 07 migration
-        conversation = described_class.call(channel, contact, contact_channel)
+        conversation, _created = described_class.call(channel, contact, contact_channel)
         expect(conversation.status).to eq("bot")
       end
 
@@ -45,7 +45,7 @@ RSpec.describe Conversations::ResolveOrCreate do
       end
 
       it "returns the existing open conversation" do
-        conversation = described_class.call(channel, contact, contact_channel)
+        conversation, _created = described_class.call(channel, contact, contact_channel)
         expect(conversation.id).to eq(open_conversation.id)
       end
 
@@ -68,7 +68,7 @@ RSpec.describe Conversations::ResolveOrCreate do
       end
 
       it "creates a new conversation with the next display_id" do
-        conversation = described_class.call(channel, contact, contact_channel)
+        conversation, _created = described_class.call(channel, contact, contact_channel)
         expect(conversation).to be_persisted
         expect(conversation.display_id).to eq(4)
       end
@@ -81,8 +81,8 @@ RSpec.describe Conversations::ResolveOrCreate do
 
         results = []
         threads = [
-          Thread.new { ActiveRecord::Base.connection_pool.with_connection { results << described_class.call(channel, contact, contact_channel) } },
-          Thread.new { ActiveRecord::Base.connection_pool.with_connection { results << described_class.call(channel, contact_b, contact_channel_b) } }
+          Thread.new { ActiveRecord::Base.connection_pool.with_connection { results << described_class.call(channel, contact, contact_channel).first } },
+          Thread.new { ActiveRecord::Base.connection_pool.with_connection { results << described_class.call(channel, contact_b, contact_channel_b).first } }
         ]
         threads.each(&:join)
 

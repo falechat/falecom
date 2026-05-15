@@ -1,6 +1,15 @@
 <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-700 dark:bg-slate-900">
   <span class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100"><%= @brand %></span>
   <% if @user %>
-    <span class="text-sm text-slate-500 dark:text-slate-400"><%= @user.email_address %></span>
+    <div class="flex items-center gap-3">
+      <%= form_with url: dashboard_user_availability_path, method: :patch, data: {turbo_frame: "_top"}, class: "inline-block" do |f| %>
+        <%= f.select :availability, [["Online", "online"], ["Busy", "busy"], ["Offline", "offline"]],
+              {selected: @user.availability},
+              onchange: "this.form.requestSubmit()",
+              id: "navbar-availability",
+              class: "rounded border px-2 py-1 text-sm" %>
+      <% end %>
+      <span class="text-sm text-slate-500 dark:text-slate-400"><%= @user.email_address %></span>
+    </div>
   <% end %>
 </header>

@@ -7,7 +7,7 @@ module Ingestion
     def self.call(channel, payload)
       ActiveRecord::Base.transaction do
         contact, contact_channel = Contacts::Resolve.call(channel, payload.fetch("contact"))
-        conversation = Conversations::ResolveOrCreate.call(channel, contact, contact_channel)
+        conversation, conversation_created = Conversations::ResolveOrCreate.call(channel, contact, contact_channel)
 
         message_data = payload.fetch("message")
         message = Messages::Create.call(
@@ -25,6 +25,12 @@ module Ingestion
         )
 
         return message if message.duplicate?
+
+        if conversation_created && conversation.status == "queued"
+          ActiveRecord::Base.connection.current_transaction.after_commit do
+            AutoAssignJob.perform_later(conversation.id)
+          end
+        end
 
         broadcast(conversation, message)
         message
