@@ -38,7 +38,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 05b | [WhatsApp Cloud /send Wiring](./plans/05b-2026-05-08-whatsapp-cloud-send.md)             | 05   | Shipped  | [#8](https://github.com/falechat/falecom/pull/8) (1fafd8d)  | 2026-05-08 |
 | 05c | [Reply Form Dashboard](./plans/05c-2026-05-08-reply-form-dashboard.md)                   | 05   | Shipped  | direct-to-main (4bde678)                                    | 2026-05-08 |
 | 05d | [Status Display + Flow](./plans/05d-2026-05-08-status-display-flow.md)                   | 05   | Shipped  | direct-to-main (46c1cb7)                                    | 2026-05-08 |
-| 06a | [Authorization + Auto-Assign + Availability](./plans/06a-2026-05-11-authz-autoassign-availability.md) | 06 | In Progress | — | — |
+| 06a | [Authorization + Auto-Assign + Availability](./plans/06a-2026-05-11-authz-autoassign-availability.md) | 06 | Shipped | [#11](https://github.com/falechat/falecom/pull/11) (4d062dd) | 2026-05-15 |
 | 06b | [Transfer + Resolve](./plans/06b-2026-05-11-transfer-resolve.md)                         | 06   | Draft    | —                                                           | —          |
 | 06c | [Workspace views + 3-pane layout](./plans/06c-2026-05-11-workspace-views.md)             | 06   | Draft    | —                                                           | —          |
 | 06d | [Conversation timeline + content-type rendering](./plans/06d-2026-05-11-conversation-timeline.md) | 06 | Draft | — | — |
