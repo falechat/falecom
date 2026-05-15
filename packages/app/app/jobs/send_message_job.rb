@@ -18,10 +18,12 @@ class SendMessageJob < ApplicationJob
 
     message.update!(external_id: response.fetch("external_id"), status: "sent")
     Events::Emit.call(name: "messages:sent", subject: message, actor: :system)
+    Conversations::Broadcasts.message_status_changed(message)
   rescue Faraday::Error
     raise
   rescue => e
     message.update!(status: "failed", error: e.message)
     Events::Emit.call(name: "messages:failed", subject: message, actor: :system)
+    Conversations::Broadcasts.message_status_changed(message)
   end
 end

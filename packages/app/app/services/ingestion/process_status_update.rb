@@ -34,18 +34,7 @@ module Ingestion
     end
 
     def self.broadcast(message)
-      Turbo::StreamsChannel.broadcast_replace_to(
-        "conversation:#{message.conversation_id}",
-        target: "message_#{message.id}_status",
-        partial: "dashboard/messages/status",
-        locals: {message: message}
-      )
-    rescue => e
-      Rails.logger.warn(
-        event: "status_update_broadcast_failed",
-        message_id: message.id,
-        error: e.message
-      )
+      Conversations::Broadcasts.message_status_changed(message)
     end
 
     private_class_method :progression_allowed?, :broadcast
