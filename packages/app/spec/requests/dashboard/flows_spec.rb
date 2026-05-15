@@ -47,6 +47,15 @@ RSpec.describe "Dashboard::Flows", type: :request do
       expect(Flow.exists?(f.id)).to be true
     end
 
+    it "GET show renders the form and node form partials" do
+      f = Flow.create!(name: "Show me")
+      FlowNode.create!(flow: f, node_type: "message", content: {"text" => "hi"})
+      get dashboard_flow_path(f)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Show me")
+      expect(response.body).to include("node-type-swap")
+    end
+
     it "PATCH set_root re-points root_node_id" do
       f = Flow.create!(name: "f")
       n = FlowNode.create!(flow: f, node_type: "message", content: {"text" => "x"})

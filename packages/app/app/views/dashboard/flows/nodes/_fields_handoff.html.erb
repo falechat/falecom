@@ -1,0 +1,2 @@
+<%= text_area_tag "flow_node[content]", (node.type_handoff? && node.content.present? ? node.content : {"team_id" => nil, "message" => ""}).to_json, rows: 4, class: "input w-full font-mono", disabled: !(node.node_type == "handoff") %>
+<p class="text-xs text-gray-500">JSON: { "team_id": 1, "message": "transferindo..." }</p>

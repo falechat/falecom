@@ -1,0 +1,2 @@
+<%= text_area_tag "flow_node[content]", (node.type_message? && node.content.present? ? node.content : {"text" => ""}).to_json, rows: 3, class: "input w-full font-mono", disabled: !((node.node_type || "message") == "message") %>
+<p class="text-xs text-gray-500">JSON: { "text": "..." }</p>
