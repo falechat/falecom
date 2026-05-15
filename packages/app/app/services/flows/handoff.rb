@@ -7,7 +7,7 @@ module Flows
     def initialize(conversation, conversation_flow, node)
       @conversation = conversation
       @cf = conversation_flow
-      @content = (node&.content || {})
+      @content = node&.content || {}
     end
 
     def call

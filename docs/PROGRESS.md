@@ -45,7 +45,7 @@ See [`CLAUDE.md § TRACKING`](../CLAUDE.md) for the full set of update rules.
 | 06e | [Admin UI + Contact management](./plans/06e-2026-05-11-admin-and-contact-mgmt.md)        | 06   | Shipped  | [#15](https://github.com/falechat/falecom/pull/15) (8286a0a) | 2026-05-15 |
 | 06f | [Real-time scoping (Solid Cable)](./plans/06f-2026-05-11-realtime-scoping.md)            | 06   | Shipped  | [#16](https://github.com/falechat/falecom/pull/16) (3eb3486) | 2026-05-15 |
 | 07a | [Flow migrations + models](./plans/07a-2026-05-15-flow-migrations-models.md)             | 07   | Shipped  | [#17](https://github.com/falechat/falecom/pull/17) (a301429) | 2026-05-15 |
-| 07b | [Flow engine services](./plans/07b-2026-05-15-flow-engine-services.md)                   | 07   | Draft    | —                                                           | —          |
+| 07b | [Flow engine services](./plans/07b-2026-05-15-flow-engine-services.md)                   | 07   | In Progress | —                                                        | —          |
 | 07c | [Flow ingestion integration + auto-assign depth](./plans/07c-2026-05-15-flow-ingestion-integration.md) | 07 | Draft | — | — |
 | 07d | [Flow management dashboard](./plans/07d-2026-05-15-flow-management-dashboard.md)         | 07   | Draft    | —                                                           | —          |
 
