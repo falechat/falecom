@@ -1,0 +1,14 @@
+<h1 class="text-xl font-semibold mb-4">Contacts</h1>
+<%= link_to "New contact", new_dashboard_contact_path, class: "btn-primary inline-block mb-3" %>
+<table class="w-full text-sm">
+  <thead><tr class="border-b text-left"><th>Name</th><th>Phone</th><th>Email</th></tr></thead>
+  <tbody>
+    <% @contacts.each do |c| %>
+      <tr class="border-b">
+        <td><%= link_to c.name, dashboard_contact_path(c) %></td>
+        <td><%= c.phone_number %></td>
+        <td><%= c.email %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,9 @@
+<h1 class="text-xl font-semibold mb-4">New contact</h1>
+<%= form_with model: @contact, url: dashboard_contacts_path do |f| %>
+  <div class="grid grid-cols-2 gap-3">
+    <%= f.label :name %>         <%= f.text_field :name, class: "input" %>
+    <%= f.label :phone_number %> <%= f.text_field :phone_number, class: "input" %>
+    <%= f.label :email %>        <%= f.email_field :email, class: "input" %>
+  </div>
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>
