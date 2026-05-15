@@ -1,0 +1,15 @@
+<h1 class="text-xl font-semibold mb-4">Teams</h1>
+<%= link_to "New team", new_admin_team_path, class: "btn-primary inline-block mb-3" %>
+<table class="w-full text-sm">
+  <thead><tr class="border-b text-left"><th>Name</th><th>Members</th><th>Channels</th><th></th></tr></thead>
+  <tbody>
+    <% @teams.each do |t| %>
+      <tr class="border-b">
+        <td><%= t.name %></td>
+        <td><%= t.users.map(&:name).join(", ") %></td>
+        <td><%= t.channels.map(&:name).join(", ") %></td>
+        <td class="text-right"><%= link_to "Edit", edit_admin_team_path(t) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
