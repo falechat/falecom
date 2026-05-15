@@ -1,0 +1,15 @@
+<%= form_with model: @user, url: @user.persisted? ? admin_user_path(@user) : admin_users_path do |f| %>
+  <% if @user.errors.any? %>
+    <ul class="text-red-600 mb-3"><% @user.errors.full_messages.each do |m| %><li><%= m %></li><% end %></ul>
+  <% end %>
+  <div class="grid grid-cols-2 gap-3">
+    <%= f.label :name %>          <%= f.text_field :name, class: "input" %>
+    <%= f.label :email_address %> <%= f.email_field :email_address, class: "input" %>
+    <%= f.label :role %>          <%= f.select :role, %w[admin supervisor agent] %>
+    <%= f.label :availability %>  <%= f.select :availability, %w[online busy offline] %>
+    <%= f.label :password %>      <%= f.password_field :password, class: "input", autocomplete: "new-password" %>
+  </div>
+  <%= f.label :team_ids, "Teams" %>
+  <%= f.collection_check_boxes :team_ids, Team.order(:name), :id, :name %>
+  <%= f.submit class: "btn-primary mt-3" %>
+<% end %>
