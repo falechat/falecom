@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_145520) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_145549) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,6 +140,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145520) do
     t.index ["created_at"], name: "index_events_on_created_at", order: :desc
     t.index ["name", "created_at"], name: "index_events_on_name_and_created_at", order: { created_at: :desc }
     t.index ["subject_type", "subject_id", "created_at"], name: "index_events_on_subject_type_and_subject_id_and_created_at", order: { created_at: :desc }
+  end
+
+  create_table "flow_nodes", force: :cascade do |t|
+    t.jsonb "content", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.bigint "flow_id", null: false
+    t.bigint "next_node_id"
+    t.string "node_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["flow_id"], name: "index_flow_nodes_on_flow_id"
+    t.index ["next_node_id"], name: "index_flow_nodes_on_next_node_id"
+    t.check_constraint "node_type::text = ANY (ARRAY['message'::character varying, 'menu'::character varying, 'collect'::character varying, 'handoff'::character varying, 'branch'::character varying]::text[])", name: "flow_nodes_node_type_check"
   end
 
   create_table "flows", force: :cascade do |t|
@@ -372,6 +384,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145520) do
   add_foreign_key "conversations", "contacts"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users", column: "assignee_id"
+  add_foreign_key "flow_nodes", "flow_nodes", column: "next_node_id"
+  add_foreign_key "flow_nodes", "flows"
   add_foreign_key "messages", "channels"
   add_foreign_key "messages", "conversations"
   add_foreign_key "sessions", "users"
