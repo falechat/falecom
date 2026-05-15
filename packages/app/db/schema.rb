@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_145606) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_145626) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -77,6 +77,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145606) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["active"], name: "index_channels_on_active"
+    t.index ["active_flow_id"], name: "index_channels_on_active_flow_id"
     t.index ["channel_type", "identifier"], name: "index_channels_on_channel_type_and_identifier", unique: true
     t.check_constraint "channel_type::text = ANY (ARRAY['whatsapp_cloud'::character varying::text, 'zapi'::character varying::text, 'evolution'::character varying::text, 'instagram'::character varying::text, 'telegram'::character varying::text])", name: "channels_channel_type_check"
   end
@@ -379,6 +380,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145606) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "channel_teams", "channels"
   add_foreign_key "channel_teams", "teams"
+  add_foreign_key "channels", "flows", column: "active_flow_id"
   add_foreign_key "contact_channels", "channels"
   add_foreign_key "contact_channels", "contacts"
   add_foreign_key "conversations", "channels"
