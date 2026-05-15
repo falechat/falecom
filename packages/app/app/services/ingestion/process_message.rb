@@ -26,7 +26,13 @@ module Ingestion
 
         return message if message.duplicate?
 
-        if conversation_created && conversation.status == "queued"
+        if conversation.status == "bot" && conversation.channel.active_flow_id.present?
+          if conversation.conversation_flow.nil?
+            Flows::Start.call(conversation)
+          else
+            Flows::Advance.call(conversation, message)
+          end
+        elsif conversation_created && conversation.status == "queued"
           ActiveRecord::Base.connection.current_transaction.after_commit do
             AutoAssignJob.perform_later(conversation.id)
           end
