@@ -207,6 +207,43 @@ end
 
 puts "   Messages: #{Message.count}"
 
+puts "== Seeding 'Atendimento Vendas' flow =="
+
+flow = Flow.find_or_create_by!(name: "Atendimento Vendas") do |f|
+  f.description = "Bot inicial de triagem"
+  f.is_active = true
+  f.inactivity_threshold_hours = 24
+end
+
+if flow.flow_nodes.empty?
+  greeting = FlowNode.create!(flow: flow, node_type: "message", content: {"text" => "Olá! Bem-vindo ao FaleCom Dev."})
+  collect = FlowNode.create!(flow: flow, node_type: "collect", content: {"text" => "Qual seu nome?", "variable" => "contact_name", "validation" => "any"})
+  short_greeting = FlowNode.create!(flow: flow, node_type: "message", content: {"text" => "Bem-vindo de volta!"})
+
+  handoff_vendas = FlowNode.create!(flow: flow, node_type: "handoff", content: {"team_id" => vendas.id, "message" => "Transferindo para Vendas...", "assign_collected_name" => true})
+  handoff_suporte = FlowNode.create!(flow: flow, node_type: "handoff", content: {"team_id" => suporte.id, "message" => "Transferindo para Suporte...", "assign_collected_name" => true})
+  handoff_outros = FlowNode.create!(flow: flow, node_type: "handoff", content: {"team_id" => vendas.id, "message" => "Alguém vai te ajudar em breve!", "assign_collected_name" => true})
+
+  menu = FlowNode.create!(flow: flow, node_type: "menu", content: {
+    "text" => "Como posso ajudar?",
+    "options" => [
+      {"key" => "1", "label" => "Vendas", "next_node_id" => handoff_vendas.id},
+      {"key" => "2", "label" => "Suporte", "next_node_id" => handoff_suporte.id},
+      {"key" => "3", "label" => "Outros", "next_node_id" => handoff_outros.id}
+    ]
+  })
+
+  greeting.update!(next_node: collect)
+  collect.update!(next_node: menu)
+  flow.update!(root_node: greeting, short_greeting_node: short_greeting)
+end
+
+if (wa = Channel.find_by(channel_type: "whatsapp_cloud"))
+  wa.update!(active_flow: flow) if wa.active_flow_id != flow.id
+end
+
+puts "   FlowNodes: #{FlowNode.count}"
+
 puts ""
 puts "== Seed complete =="
 puts "   Users:           #{User.count}"
