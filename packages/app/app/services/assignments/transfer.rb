@@ -69,9 +69,8 @@ module Assignments
       )
     end
 
-    def broadcast_transfer(_from_user_id, _from_team_id)
-      # Plan 06f wires the real Turbo Stream targets.
-      nil
+    def broadcast_transfer(from_user_id, _from_team_id)
+      Conversations::Broadcasts.transferred(@conversation, from_user_id: from_user_id, from_team_id: nil)
     end
   end
 end
