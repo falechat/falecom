@@ -1,13 +1,14 @@
 module Dispatch
   class Outbound
     def self.call(conversation:, content:, actor:, content_type: "text", attachments: [], metadata: {}, reply_to_external_id: nil)
+      sender = actor.is_a?(Symbol) ? nil : actor
       message = Messages::Create.call(
         conversation: conversation,
         direction: "outbound",
         content: content,
         content_type: content_type,
         status: "pending",
-        sender: actor,
+        sender: sender,
         metadata: metadata,
         reply_to_external_id: reply_to_external_id
       )
