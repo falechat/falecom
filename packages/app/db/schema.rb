@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_145549) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_145606) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -164,6 +164,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145549) do
     t.bigint "short_greeting_node_id"
     t.datetime "updated_at", null: false
     t.index ["is_active"], name: "index_flows_on_is_active"
+    t.index ["root_node_id"], name: "index_flows_on_root_node_id"
+    t.index ["short_greeting_node_id"], name: "index_flows_on_short_greeting_node_id"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -386,6 +388,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_145549) do
   add_foreign_key "conversations", "users", column: "assignee_id"
   add_foreign_key "flow_nodes", "flow_nodes", column: "next_node_id"
   add_foreign_key "flow_nodes", "flows"
+  add_foreign_key "flows", "flow_nodes", column: "root_node_id"
+  add_foreign_key "flows", "flow_nodes", column: "short_greeting_node_id"
   add_foreign_key "messages", "channels"
   add_foreign_key "messages", "conversations"
   add_foreign_key "sessions", "users"
