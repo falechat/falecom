@@ -1,0 +1,38 @@
+<% if @contact.nil? %>
+  <div class="p-4 text-gray-500 text-sm">Select a conversation to see contact details.</div>
+<% else %>
+  <div class="p-4 border-b">
+    <div class="text-lg font-semibold"><%= @contact.name || "Unknown" %></div>
+    <% if @contact.phone_number %><div class="text-sm text-gray-600"><%= @contact.phone_number %></div><% end %>
+    <% if @contact.email %><div class="text-sm text-gray-600"><%= @contact.email %></div><% end %>
+  </div>
+
+  <% if attributes_pairs.any? %>
+    <div class="p-4 border-b">
+      <h3 class="text-xs font-semibold uppercase text-gray-500 mb-2">Attributes</h3>
+      <dl class="text-sm">
+        <% attributes_pairs.each do |k, v| %>
+          <div class="flex justify-between py-1">
+            <dt class="text-gray-600"><%= k %></dt>
+            <dd>
+              <% if v.to_s.start_with?("http") %>
+                <%= link_to v, v, target: "_blank", class: "text-blue-600 underline" %>
+              <% else %>
+                <%= v %>
+              <% end %>
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  <% end %>
+
+  <div class="p-4">
+    <h3 class="text-xs font-semibold uppercase text-gray-500 mb-2">History</h3>
+    <ul class="text-sm space-y-1">
+      <% history.each do |c| %>
+        <li><%= link_to "##{c.display_id} · #{c.status}", dashboard_conversation_path(c) %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

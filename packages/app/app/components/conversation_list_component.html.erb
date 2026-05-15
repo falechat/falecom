@@ -1,0 +1,27 @@
+<turbo-frame id="conversation-list" class="flex flex-col h-full">
+  <header class="p-2 border-b bg-white">
+    <nav class="flex gap-1 text-sm">
+      <% %w[mine unassigned team].each do |v| %>
+        <%= link_to v.titleize, dashboard_conversations_path(view: v),
+              class: "px-2 py-1 rounded #{"bg-blue-100 font-semibold" if @view == v}",
+              data: {turbo_frame: "conversation-list"} %>
+      <% end %>
+    </nav>
+  </header>
+  <div class="flex-1 overflow-y-auto">
+    <% paged.each do |c| %>
+      <%= render ConversationListRowComponent.new(conversation: c, active: c.id == @active_id) %>
+    <% end %>
+  </div>
+  <footer class="p-2 border-t bg-white text-xs flex justify-between">
+    <span><%= total %> conversations</span>
+    <span>
+      <% if @page > 1 %>
+        <%= link_to "← Prev", dashboard_conversations_path(view: @view, page: @page - 1), data: {turbo_frame: "conversation-list"} %>
+      <% end %>
+      <% if @page < total_pages %>
+        <%= link_to "Next →", dashboard_conversations_path(view: @view, page: @page + 1), data: {turbo_frame: "conversation-list"} %>
+      <% end %>
+    </span>
+  </footer>
+</turbo-frame>

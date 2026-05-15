@@ -1,0 +1,13 @@
+<% policy = ConversationPolicy.new(Current.user, conversation) %>
+<div class="flex gap-2 mb-4">
+  <% if policy.can_pickup? %>
+    <%= button_to "Pick up", dashboard_conversation_pickup_path(conversation), method: :post, class: "btn-primary" %>
+  <% end %>
+  <% if policy.can_transfer? %>
+    <%= link_to "Transfer", new_dashboard_conversation_transfer_path(conversation), data: {turbo_frame: "modal"}, class: "btn-secondary" %>
+  <% end %>
+  <% if policy.can_resolve? && conversation.status != "resolved" %>
+    <%= button_to "Resolve", dashboard_conversation_resolution_path(conversation), method: :post, class: "btn-secondary" %>
+  <% end %>
+</div>
+<turbo-frame id="modal"></turbo-frame>

@@ -1,25 +1,13 @@
-<%= turbo_stream_from "conversation:#{@conversation.id}" %>
-
-<h1 class="text-xl font-semibold mb-4">
-  <%= @conversation.contact&.name || "(unknown)" %> · #<%= @conversation.display_id %>
-</h1>
-
-<% policy = ConversationPolicy.new(Current.user, @conversation) %>
-<div class="flex gap-2 mb-4">
-  <% if policy.can_pickup? %>
-    <%= button_to "Pick up", dashboard_conversation_pickup_path(@conversation), method: :post, class: "btn-primary" %>
+<%= render WorkspaceLayoutComponent.new do |layout| %>
+  <% layout.with_list do %>
+    <%= render ConversationListComponent.new(conversations: @scope, active_id: @conversation.id, view: @view, page: @page) %>
   <% end %>
-  <% if policy.can_transfer? %>
-    <%= link_to "Transfer", new_dashboard_conversation_transfer_path(@conversation), data: {turbo_frame: "modal"}, class: "btn-secondary" %>
+  <% layout.with_main do %>
+    <turbo-frame id="active-conversation" class="flex-1 flex flex-col">
+      <%= render "conversation_detail", conversation: @conversation %>
+    </turbo-frame>
   <% end %>
-  <% if policy.can_resolve? && @conversation.status != "resolved" %>
-    <%= button_to "Resolve", dashboard_conversation_resolution_path(@conversation), method: :post, class: "btn-secondary" %>
+  <% layout.with_sidebar do %>
+    <%= render ContactSidebarComponent.new(contact: @contact, current_conversation: @conversation) %>
   <% end %>
-</div>
-<turbo-frame id="modal"></turbo-frame>
-
-<div id="messages-<%= @conversation.id %>" class="flex flex-col mb-4">
-  <%= render(MessageComponent.with_collection(@messages)) %>
-</div>
-
-<%= render "reply_form", conversation: @conversation %>
+<% end %>
