@@ -1,0 +1,10 @@
+<div class="flex <%= (alignment == "outbound") ? "justify-end" : "justify-start" %>">
+  <div class="bubble <%= alignment %> max-w-[70%] rounded-lg px-3 py-2 <%= (alignment == "outbound") ? "bg-blue-100" : "bg-white border" %>">
+    <%= render partial: content_partial, locals: {message: @message} %>
+    <% if status_icon %>
+      <div class="text-xs text-gray-500 mt-1 status-<%= @message.status %>"><%= status_icon %> · <%= l(@message.created_at, format: :short) %></div>
+    <% else %>
+      <div class="text-xs text-gray-500 mt-1"><%= l(@message.created_at, format: :short) %></div>
+    <% end %>
+  </div>
+</div>

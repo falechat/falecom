@@ -1,17 +1,15 @@
 <%= turbo_stream_from "conversation:#{conversation.id}" %>
 
-<div class="p-4 border-b">
-  <h1 class="text-xl font-semibold">
-    <%= conversation.contact&.name || "(unknown)" %> · #<%= conversation.display_id %>
-  </h1>
-</div>
-
-<div class="p-4">
-  <%= render "action_bar", conversation: conversation %>
-
-  <div id="messages-<%= conversation.id %>" class="flex flex-col mb-4">
-    <%= render(MessageComponent.with_collection(@messages)) %>
+<header class="border-b p-3 bg-white flex items-center justify-between">
+  <div>
+    <div class="font-semibold"><%= conversation.contact&.name || "(unknown)" %></div>
+    <div class="text-xs text-gray-500">#<%= conversation.display_id %> · <%= conversation.channel.name %></div>
   </div>
+  <%= render "action_bar", conversation: conversation %>
+</header>
 
+<%= render ConversationTimelineComponent.new(conversation: conversation) %>
+
+<footer class="border-t p-3 bg-white">
   <%= render "reply_form", conversation: conversation %>
-</div>
+</footer>

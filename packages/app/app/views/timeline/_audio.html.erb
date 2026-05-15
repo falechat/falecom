@@ -1,0 +1,4 @@
+<% url = (message.attachments.attached? ? rails_blob_url(message.attachments.first) : nil) || message.metadata["url"] %>
+<% if url %>
+  <%= audio_tag url, controls: true, class: "timeline-audio max-w-xs" %>
+<% end %>

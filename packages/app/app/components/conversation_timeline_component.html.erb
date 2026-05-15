@@ -1,0 +1,13 @@
+<div class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50" id="timeline-<%= @conversation.id %>">
+  <% items.each do |item| %>
+    <% if item.is_a?(Message) %>
+      <% if item.sender.nil? && item.direction == "outbound" %>
+        <%= render TimelineSystemMessageComponent.new(message: item) %>
+      <% else %>
+        <%= render TimelineMessageComponent.new(message: item) %>
+      <% end %>
+    <% else %>
+      <%= render TimelineEventComponent.new(event: item) %>
+    <% end %>
+  <% end %>
+</div>
