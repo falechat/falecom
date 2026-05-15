@@ -40,7 +40,7 @@ RSpec.describe Flows::Handoff do
 
   it "enqueues AutoAssignJob when channel.auto_assign? is true" do
     channel.update!(auto_assign: true)
-    expect { described_class.call(conv, cf, node) }.to have_enqueued_job(AutoAssignJob)
+    expect { described_class.call(conv, cf, node) }.to have_enqueued_job(AutoAssignJob).with(conv.id, depth: 0)
   end
 
   it "no-op message when content has no 'message' key" do

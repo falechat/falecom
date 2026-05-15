@@ -15,7 +15,7 @@ module Flows
     def call
       return abandon! if @step > MAX_STEPS_PER_ADVANCE
 
-      cf = @conversation.conversation_flow
+      cf = @conversation.conversation_flow || @conversation.reload.conversation_flow
       return Flows::Start.call(@conversation) if cf.nil? || cf.status != "active"
 
       node = cf.current_node
