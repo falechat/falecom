@@ -1,0 +1,8 @@
+<% vcard = message.metadata["vcard"] || {} %>
+<div class="timeline-contact-card border rounded p-2">
+  <div class="font-medium"><%= vcard["name"] || "Contact" %></div>
+  <% if vcard["phone"] %><div class="text-sm text-gray-600"><%= vcard["phone"] %></div><% end %>
+  <% if vcard["data"] %>
+    <a href="data:text/vcard;base64,<%= Base64.strict_encode64(vcard["data"]) %>" download="<%= vcard["name"] || "contact" %>.vcf" class="text-xs underline">Download .vcf</a>
+  <% end %>
+</div>

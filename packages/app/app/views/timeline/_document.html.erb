@@ -1,0 +1,8 @@
+<% url = (message.attachments.attached? ? rails_blob_url(message.attachments.first) : nil) || message.metadata["url"] %>
+<% filename = message.metadata["filename"] || "file" %>
+<% size = message.metadata["size"] ? number_to_human_size(message.metadata["size"]) : nil %>
+<% if url %>
+  <a href="<%= url %>" target="_blank" class="timeline-document flex items-center gap-2 underline">
+    <%= filename %><% if size %> · <%= size %><% end %>
+  </a>
+<% end %>

@@ -1,0 +1,7 @@
+<% lat = message.metadata["latitude"]; lng = message.metadata["longitude"] %>
+<% if lat && lng %>
+  <a class="timeline-location block" href="https://www.openstreetmap.org/?mlat=<%= lat %>&mlon=<%= lng %>#map=15/<%= lat %>/<%= lng %>" target="_blank">
+    <img src="https://staticmap.openstreetmap.de/staticmap.php?center=<%= lat %>,<%= lng %>&zoom=15&size=300x180&markers=<%= lat %>,<%= lng %>,red-pushpin" class="rounded" alt="map">
+    <div class="text-xs text-gray-600 mt-1"><%= lat %>, <%= lng %></div>
+  </a>
+<% end %>
