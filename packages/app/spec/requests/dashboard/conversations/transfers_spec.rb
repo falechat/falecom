@@ -14,7 +14,7 @@ RSpec.describe "Dashboard::Conversations::Transfers", type: :request do
       ChannelTeam.create!(channel: c, team: team_b)
     end
   end
-  let(:agent)   { make_user.tap { |u| TeamMember.create!(user: u, team: team_a) } }
+  let(:agent) { make_user.tap { |u| TeamMember.create!(user: u, team: team_a) } }
   let(:agent_b) { make_user.tap { |u| TeamMember.create!(user: u, team: team_b) } }
   let(:conv) do
     contact = Contact.create!(name: "C")

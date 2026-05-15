@@ -43,7 +43,7 @@ RSpec.describe Assignments::Transfer do
   end
   let(:user_a) { make_user.tap { |u| TeamMember.create!(user: u, team: team_a) } }
   let(:user_b) { make_user.tap { |u| TeamMember.create!(user: u, team: team_b) } }
-  let(:admin)  { make_user(role: "admin") }
+  let(:admin) { make_user(role: "admin") }
   let(:conversation) { make_conversation(channel: channel, team: team_a, assignee: user_a, status: "assigned") }
 
   describe "reassign (to_user only)" do
